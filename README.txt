@@ -1,7 +1,7 @@
 Python Symmetric JSON-RPC 3
 ===========================
 
-"A symmetric, transport-layer agnostic JSON-RPC implemenation in python."
+"A symmetric, transport-layer agnostic JSON-RPC implemenation in Python."
 
 A JSON-RPC (see https://jsonrpc.org) implementation for Python, with
 the following features:
@@ -20,7 +20,7 @@ the following features:
  * Transport agnostic - can run on top of anything that resembles a
    socket the slightest (e.g. OpenSSL)
 
-  * Dependency free
+ * Dependency free
 
 What this really drills down to is that this library implements the
 full specification of JSON-RPC over sockets.
