@@ -1,6 +1,6 @@
 Python Symmetric JSON-RPC
 
-"A more beautiful JSON-RPC implemenation in python."
+"A symmetric, transport-layer agnostic JSON-RPC implemenation in python."
 
 A JSON-RPC (see http://json-rpc.org) implementation for Python, with
 the following features:
@@ -20,8 +20,7 @@ the following features:
    socket the slightest (e.g. OpenSSL)
 
 What this really drills down to is that this library implements the
-full specification of JSON-RPC over sockets, something no other
-implementation of JSON-RPC for Python does.
+full specification of JSON-RPC over sockets.
 
 
 For usage details, look at the examples in the "examples" directory.
