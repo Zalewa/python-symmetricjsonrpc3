@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "symmetricjsonrpc3"
+description = "A symmetric, transport-layer agnostic JSON RPC."
+authors = [
+    { name = "Egil Moeller", email = "redhog@redhog.org" },
+    { name = "Nicklas Lindgren", email = "nili@gulmohar.se" },
+    { name = 'Robert "Robikz" Zalewski', email = "zalewapl@gmail.com" },
+]
+maintainers = [
+    { name = 'Robert "Robikz" Zalewski', email = "zalewapl@gmail.com" },
+]
+readme = "README.txt"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Networking",
+]
+requires-python = ">=3.8.1"
+dynamic = ["version"]
+
+[project.urls]
+Source = "https://github.com/Zalewa/python-symmetricjsonrpc3"
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
