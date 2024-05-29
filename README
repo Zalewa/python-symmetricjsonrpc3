@@ -20,6 +20,8 @@ the following features:
  * Transport agnostic - can run on top of anything that resembles a
    socket the slightest (e.g. OpenSSL)
 
+  * Dependency free
+
 What this really drills down to is that this library implements the
 full specification of JSON-RPC over sockets.
 
