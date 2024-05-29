@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as

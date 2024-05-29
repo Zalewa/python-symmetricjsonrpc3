@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -29,7 +30,7 @@ debug_read = False
 
 import select
 
-class WriterWrapper(object):
+class WriterWrapper:
     """Provides a unified interface for writing to sockets or
     file-like objects.
 
@@ -50,29 +51,33 @@ class WriterWrapper(object):
 
     def __init__(self, f):
         self.f = f
-        self.buff = []
-        self.buff_len = 0
+        self.buff = None
         self.poll = None
         if hasattr(f, 'fileno'):
             self.poll = select.poll()
             self.poll.register(f, select.POLLOUT | select.POLLERR | select.POLLHUP | select.POLLNVAL)
         self.closed = False
 
+    @property
+    def buff_len(self):
+        return len(self.buff) if self.buff else 0
+
     def close(self):
         self.closed = True
         self.f.close()
 
     def write(self, s):
-        self.buff.append(s)
-        self.buff_len += len(s)
+        if self.buff is None:
+            self.buff = s
+        else:
+            self.buff += s
         if self.buff_len > self.buff_maxsize:
             self.flush()
 
     def flush(self):
-        data = ''.join(self.buff)
-        del self.buff[:]
-        self.buff_len = 0
-        if debug_write: print "write(%s)" % (repr(data),)
+        data = self.buff
+        self.buff = None
+        if debug_write: print("write(%s)" % (repr(data),))
         while data:
             self._wait()
             data = data[self._write(data):]
@@ -96,10 +101,10 @@ class FileWriter(WriterWrapper):
 
 class SocketWriter(WriterWrapper):
     def _write(self, s):
-        res = self.f.send(s)
+        res = self.f.send(s.encode('ascii'))
         return res
 
-class ReaderWrapper(object):
+class ReaderWrapper:
     """Provides a unified interface for reading from sockets or
     file-like objects.
 
@@ -128,7 +133,7 @@ class ReaderWrapper(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         try:
             self._wait()
         except EOFError:
@@ -138,7 +143,7 @@ class ReaderWrapper(object):
             raise StopIteration
         else:
             if debug_read:
-                print "read(%s)" % (repr(result),)
+                print("read(%s)" % (repr(result),))
             return result
 
     def close(self):
@@ -163,9 +168,9 @@ class FileReader(ReaderWrapper):
 
 class SocketReader(ReaderWrapper):
     def _read(self):
-        return self.file.recv(1)
+        return self.file.recv(1).decode('ascii')
 
-class ReIterator(object):
+class ReIterator:
     """An iterator wrapper that provides lookahead through the peek
     method."""
     def __init__(self, i):
@@ -178,7 +183,7 @@ class ReIterator(object):
     def next(self):
         if self._prefix:
             return self._prefix.pop(0)
-        return self._i.next()
+        return next(self._i)
 
     def _put(self, value):
         self._prefix.append(value)
@@ -186,7 +191,7 @@ class ReIterator(object):
     def peek(self):
         try:
             if not self._prefix:
-                self._put(self._i.next())
+                self._put(next(self._i))
             return self._prefix[-1]
         except StopIteration:
             raise EOFError()

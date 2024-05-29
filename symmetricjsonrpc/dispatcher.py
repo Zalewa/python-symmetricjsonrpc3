@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -24,10 +25,10 @@
 """Facilities for managing a hirearchy of threads each providing a
 synchronous I/O interface."""
 
-from __future__ import with_statement
-
 import select
 import threading
+import traceback
+
 
 class Thread(threading.Thread):
     """This class is the base class for a set of threading.Thread
@@ -63,18 +64,18 @@ class Thread(threading.Thread):
             self.parent.children.remove(self)
 
     def run(self, *arg, **kw):
-        if self.debug_thread: print "%s: BEGIN" % self.getName()
+        if self.debug_thread: print("%s: BEGIN" % self.getName())
         self.run_thread(*arg, **kw)
-        if self.debug_thread: print "%s: TEARDOWN: %s" % (self.getName(), ', '.join(child.getName() for child in self.children))
+        if self.debug_thread: print("%s: TEARDOWN: %s" % (self.getName(), ', '.join(child.getName() for child in self.children)))
         self._exit()
-        if self.debug_thread: print "%s: END" % self.getName()
+        if self.debug_thread: print("%s: END" % self.getName())
 
     def shutdown(self):
-        if self.debug_thread: print "%s: shutdown: %s" % (threading.currentThread().getName(), self.getName(),)
+        if self.debug_thread: print("%s: shutdown: %s" % (threading.currentThread().getName(), self.getName(),))
         for child in list(self.children):
             child.shutdown()
         self._shutdown = True
-        if self.debug_thread: print "%s: shutdown done: %s" % (threading.currentThread().getName(), self.getName(),)
+        if self.debug_thread: print("%s: shutdown done: %s" % (threading.currentThread().getName(), self.getName(),))
 
     def run_parent(self):
         pass
@@ -91,9 +92,9 @@ class Connection(Thread):
 
     def run_thread(self):
         for value in self.read():
-            if self.debug_dispatch: print "%s: DISPATCH: %s" % (self.getName(), value)
+            if self.debug_dispatch: print("%s: DISPATCH: %s" % (self.getName(), value))
             self.dispatch(value)
-            if self.debug_dispatch: print "%s: DISPATCH DONE: %s" % (self.getName(), value)
+            if self.debug_dispatch: print("%s: DISPATCH DONE: %s" % (self.getName(), value))
 
     def read(self):
         pass

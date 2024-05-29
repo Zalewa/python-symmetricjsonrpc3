@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -24,10 +25,10 @@
 """JSON (de)serialization facilities."""
 
 import sys
-import StringIO
+import io
 import unittest
 
-import wrappers
+from . import wrappers
 
 def from_json(str):
     """Return a python object representing the json value in str."""
@@ -36,12 +37,12 @@ def from_json(str):
 
 def to_json(obj):
     """Return a json string representing the python object obj."""
-    i = StringIO.StringIO()
+    i = io.StringIO()
     w = Writer(i, encoding='UTF-8')
     w.write_value(obj)
     return i.getvalue()
 
-class Writer(object):
+class Writer:
     """A serializer for python values to JSON. Allowed types for
     values to serialize are:
 
@@ -74,7 +75,7 @@ class Writer(object):
     def unflushed_write_value(self, value):
         if hasattr(value, '__to_json__'):
             self.unflushed_write_value(value.__to_json__())
-        elif isinstance(value, unicode):
+        elif isinstance(value, str):
             self.s.write('"')
             for c in value:
                 if c == '\b':
@@ -92,27 +93,27 @@ class Writer(object):
                 elif c == '\\':
                     self.s.write(r'\\')
                 elif c >= ' ' and c <= '~':
-                    self.s.write(c.encode('ascii'))
+                    self.s.write(c)
                 elif c > '~':
                     self.s.write(r'\u%04x' % ord(c))
                 else:
                     raise Exception("Cannot encode character %x into json string" % ord(c))
             self.s.write('"')
-        elif isinstance(value, str):
+        elif isinstance(value, bytes):
             self.unflushed_write_value(value.decode(self.encoding or sys.getdefaultencoding()))
         elif isinstance(value, bool):
             self.s.write(value and 'true' or 'false')
-        elif isinstance(value, int) or isinstance(value, float) or isinstance(value, long):
+        elif isinstance(value, (int, float)):
             r = repr(value)
             if r[-1] == 'L':
                 r = r[:-1]
             self.s.write(r)
-        elif value == None:
+        elif value is None:
             self.s.write('null')
         elif hasattr(value, '__iter__'):
-            if hasattr(value,'iteritems'):
+            if hasattr(value,'items'):
                 self.s.write('{')
-                for n, (k, v) in enumerate(value.iteritems()):
+                for n, (k, v) in enumerate(value.items()):
                     if (n > 0):
                         self.s.write(',')
                     self.unflushed_write_value(k)
@@ -133,7 +134,7 @@ class Writer(object):
         for value in values:
             self.unflushed_write_value(value)
 
-class Tokenizer(object):
+class Tokenizer:
     """A SAX-like recursive-descent parser for JSON.
 
     This class does not actually parse JSON into Python objects, it
@@ -375,21 +376,21 @@ class Reader(Tokenizer):
         except EOFError:
             return
 
-class DebugTokenizer(object):
-    def pair_begin(self): print '('; print self.state; return super(DebugTokenizer, self).pair_begin()
-    def pair_end(self): print ')'; print self.state; return super(DebugTokenizer, self).pair_end()
-    def object_begin(self): print '{'; print self.state; return super(DebugTokenizer, self).object_begin()
-    def object_end(self): print '}'; print self.state; return super(DebugTokenizer, self).object_end()
-    def array_begin(self): print '['; print self.state; return super(DebugTokenizer, self).array_begin()
-    def array_end(self): print ']'; print self.state; return super(DebugTokenizer, self).array_end()
-    def string_begin(self): print '"'; print self.state; return super(DebugTokenizer, self).string_begin()
-    def string_end(self): print '"'; print self.state; return super(DebugTokenizer, self).string_end()
-    def number_begin(self): print '<'; print self.state; return super(DebugTokenizer, self).number_begin()
-    def number_end(self): print '>'; print self.state; return super(DebugTokenizer, self).number_end()
-    def char(self, c): print repr(c); print self.state; return super(DebugTokenizer, self).char(c)
-    def true(self): print "TRUE"; print self.state; return super(DebugTokenizer, self).true()
-    def false(self): print "FALSE"; print self.state; return super(DebugTokenizer, self).false()
-    def null(self): print "NULL"; print self.state; return super(DebugTokenizer, self).null()
+class DebugTokenizer:
+    def pair_begin(self): print('('); print(self.state); return super(DebugTokenizer, self).pair_begin()
+    def pair_end(self): print(')'); print(self.state); return super(DebugTokenizer, self).pair_end()
+    def object_begin(self): print('{'); print(self.state); return super(DebugTokenizer, self).object_begin()
+    def object_end(self): print('}'); print(self.state); return super(DebugTokenizer, self).object_end()
+    def array_begin(self): print('['); print(self.state); return super(DebugTokenizer, self).array_begin()
+    def array_end(self): print(']'); print(self.state); return super(DebugTokenizer, self).array_end()
+    def string_begin(self): print('"'); print(self.state); return super(DebugTokenizer, self).string_begin()
+    def string_end(self): print('"'); print(self.state); return super(DebugTokenizer, self).string_end()
+    def number_begin(self): print('<'); print(self.state); return super(DebugTokenizer, self).number_begin()
+    def number_end(self): print('>'); print(self.state); return super(DebugTokenizer, self).number_end()
+    def char(self, c): print(repr(c)); print(self.state); return super(DebugTokenizer, self).char(c)
+    def true(self): print("TRUE"); print(self.state); return super(DebugTokenizer, self).true()
+    def false(self): print("FALSE"); print(self.state); return super(DebugTokenizer, self).false()
+    def null(self): print("NULL"); print(self.state); return super(DebugTokenizer, self).null()
     def fail(self, msg): super(DebugTokenizer, self).fail(); raise Exception(msg)
 
 class DebugReader(DebugTokenizer, Reader): pass
@@ -523,11 +524,11 @@ class TestJson(unittest.TestCase):
         timeout = Timeout()
         timeout.start()
         timeout.join(3)
-        if timeout.isAlive():
+        if timeout.is_alive():
             self.fail('Reader has hung.')
 
     def test_write_object(self):
-        class SomeObj(object):
+        class SomeObj:
             def __init__(self, x):
                 self.x = x
 

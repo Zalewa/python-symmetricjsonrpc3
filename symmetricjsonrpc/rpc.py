@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -32,8 +33,8 @@ import time
 import traceback
 import unittest
 
-import dispatcher
-import json
+from . import dispatcher
+from . import json
 
 class ClientConnection(dispatcher.Connection):
     """A connection manager for a connected socket (or similar) that
@@ -51,6 +52,10 @@ class ClientConnection(dispatcher.Connection):
 
     def read(self):
         return self.reader.read_values()
+
+class TimeoutError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
 
 class RPCClient(ClientConnection):
     """A JSON RPC client connection manager.
@@ -71,7 +76,7 @@ class RPCClient(ClientConnection):
                 try:
                     result = self.dispatch_request(subject)
                     error = None
-                except Exception, e:
+                except Exception as e:
                     result = None
                     error = {'type': type(e).__name__,
                              'args': list(e.args)}
@@ -119,9 +124,10 @@ class RPCClient(ClientConnection):
 
         try:
             with self._recv_waiting[request_id]['condition']:
+                self._recv_waiting[request_id]['condition'].wait(timeout)
                 if self._recv_waiting[request_id]['result'] == None:
-                    self._recv_waiting[request_id]['condition'].wait(timeout)
-                if self._recv_waiting[request_id]['result'].has_key('error') and self._recv_waiting[request_id]['result']['error'] is not None:
+                    raise TimeoutError("RPC timeout on method '{0}'".format(method))
+                if self._recv_waiting[request_id]['result'].get('error') is not None:
                     exc = Exception(self._recv_waiting[request_id]['result']['error']['message'])
                     raise exc
                 return self._recv_waiting[request_id]['result']['result']
@@ -169,7 +175,7 @@ class RPCP2PNode(dispatcher.ThreadedClient):
 
 debug_tests = False
 
-class TestEchoDispatcher(object):
+class TestEchoDispatcher:
     def __init__(self, subject, parent):
         if not hasattr(parent, "writer"):
             parent = parent.parent
@@ -192,7 +198,7 @@ class TestThreadedEchoServer(dispatcher.ServerConnection):
 class TestPingRPCClient(RPCClient):
     class Request(RPCClient.Request):
         def dispatch_request(self, subject):
-            if debug_tests: print "PingClient: dispatch_request", subject
+            if debug_tests: print("PingClient: dispatch_request", subject)
             assert subject['method'] == "pingping"
             return "pingpong"
 
@@ -201,10 +207,10 @@ class TestPongRPCServer(RPCServer):
         class Thread(RPCServer.InboundConnection.Thread):
             class Request(RPCServer.InboundConnection.Thread.Request):
                 def dispatch_request(self, subject):
-                    if debug_tests: print "TestPongRPCServer: dispatch_request", subject
+                    if debug_tests: print("TestPongRPCServer: dispatch_request", subject)
                     assert subject['method'] == "ping"
                     assert self.parent.request("pingping", wait_for_response=True) == "pingpong"
-                    if debug_tests: print "TestPongRPCServer: back-pong"
+                    if debug_tests: print("TestPongRPCServer: back-pong")
                     return "pong"
 
 class TestPongRPCP2PServer(RPCP2PNode):
@@ -213,13 +219,13 @@ class TestPongRPCP2PServer(RPCP2PNode):
             class Thread(RPCP2PNode.Thread.InboundConnection.Thread):
                 class Request(RPCP2PNode.Thread.InboundConnection.Thread.Request):
                     def dispatch_request(self, subject):
-                        if debug_tests: print "TestPongRPCP2PServer: dispatch_request", subject
+                        if debug_tests: print("TestPongRPCP2PServer: dispatch_request", subject)
                         if subject['method'] == "ping":
                             assert self.parent.request("pingping", wait_for_response=True) == "pingpong"
-                            if debug_tests: print "TestPongRPCServer: back-pong"
+                            if debug_tests: print("TestPongRPCServer: back-pong")
                             return "pong"
                         elif subject['method'] == "pingping":
-                            if debug_tests: print "PingClient: dispatch_request", subject
+                            if debug_tests: print("PingClient: dispatch_request", subject)
                             return "pingpong"
                         else:
                             assert False
@@ -316,7 +322,7 @@ class TestRpc(unittest.TestCase):
             server_socket = test_make_server_socket()
             res = {}
             server = TestPongRPCP2PServer(server_socket, res, name="PongServer")
-            for x in xrange(0, 4):
+            for x in range(0, 4):
                 if 'result' in res:
                     break
                 time.sleep(1)

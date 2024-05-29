@@ -1,7 +1,7 @@
-#!/usr/bin/env python
- 
-from distutils.core import setup
- 
+#!/usr/bin/env python3
+
+from setuptools import setup
+
 setup(name='symmetricjsonrpc',
 	version='0.1.0',
 	description='A more beautiful JSON-RPC implemenation in python',

@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -28,7 +29,7 @@ class PongRPCServer(symmetricjsonrpc.RPCServer):
         class Thread(symmetricjsonrpc.RPCServer.InboundConnection.Thread):
             class Request(symmetricjsonrpc.RPCServer.InboundConnection.Thread.Request):
                 def dispatch_notification(self, subject):
-                    print "dispatch_notification(%s)" % (repr(subject),)
+                    print("dispatch_notification(%s)" % (repr(subject),))
                     assert subject['method'] == "shutdown"
                     # Shutdown the server. Note: We must use a
                     # notification, not a method for this - when the
@@ -37,21 +38,21 @@ class PongRPCServer(symmetricjsonrpc.RPCServer):
                     self.parent.parent.parent.shutdown()
 
                 def dispatch_request(self, subject):
-                    print "dispatch_request(%s)" % (repr(subject),)
+                    print("dispatch_request(%s)" % (repr(subject),))
                     assert subject['method'] == "ping"
                     # Call the client back
                     # self.parent is a symmetricjsonrpc.RPCClient subclass (see the client code for more examples)
                     res = self.parent.request("pingping", wait_for_response=True)
-                    print "parent.pingping => %s" % (repr(res),)
+                    print("parent.pingping => %s" % (repr(res),))
                     assert res == "pingpong"
                     return "pong"
 
 if '--help' in sys.argv:
-    print """client.py
+    print("""client.py
     --ssl
         Encrypt communication with SSL using M2Crypto. Requires a
         server.pem and server.key in the current directory.
-"""
+""")
     sys.exit(0)
 
 if '--ssl' in sys.argv:

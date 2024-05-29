@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=UTF-8 :
 
-# python-symmetric-jsonrpc
+# python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
+# Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
@@ -24,11 +25,11 @@
 import sys, threading
 
 if '--help' in sys.argv:
-    print """client.py
+    print("""client.py
     --ssl
         Encrypt communication with SSL using M2Crypto. Requires a
         server.pem and server.key in the current directory.
-"""
+""")
     sys.exit(0)
 
 if '--ssl' in sys.argv:
@@ -51,6 +52,6 @@ s2 = s.accept()[0]
 
 data = s2.recv()
 while data:
-    print repr(data)
+    print(repr(data))
     s2.send(data)
     data = s2.recv()
