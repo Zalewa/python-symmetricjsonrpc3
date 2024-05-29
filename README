@@ -30,3 +30,18 @@ full specification of JSON-RPC over sockets.
   to PyPI.
 
 For usage details, look at the examples in the "examples" directory.
+
+Conventions
+===========
+
+The conventions apply only since forking from the original repository.
+
+This project uses/follows/adheres to:
+
+- Conventional Commits 1.0.0 (https://www.conventionalcommits.org/)
+- PyPA version scheme (https://packaging.python.org/en/latest/specifications/version-specifiers/)
+
+Git tags are prefixed with 'v'.
+
+Module's version is automatically deduced from the git tag in the
+"no-guess-dev" mode.
