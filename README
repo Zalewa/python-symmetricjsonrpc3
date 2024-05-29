@@ -2,7 +2,7 @@ Python Symmetric JSON-RPC
 
 "A symmetric, transport-layer agnostic JSON-RPC implemenation in python."
 
-A JSON-RPC (see http://json-rpc.org) implementation for Python, with
+A JSON-RPC (see https://jsonrpc.org) implementation for Python, with
 the following features:
 
  * Symmetric - both the connecting and the listening process can send
