@@ -22,10 +22,10 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
-import symmetricjsonrpc, sys
+import symmetricjsonrpc3, sys
 
-class PingRPCClient(symmetricjsonrpc.RPCClient):
-    class Request(symmetricjsonrpc.RPCClient.Request):
+class PingRPCClient(symmetricjsonrpc3.RPCClient):
+    class Request(symmetricjsonrpc3.RPCClient.Request):
         def dispatch_request(self, subject):
             # Handle callbacks from the server
             print("dispatch_request(%s)" % (repr(subject),))

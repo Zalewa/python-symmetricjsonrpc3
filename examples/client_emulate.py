@@ -25,11 +25,11 @@
 import sys, time, threading
 
 if '--help' in sys.argv:
-    print """client.py
+    print("""client.py
     --ssl
         Encrypt communication with SSL using M2Crypto. Requires a
         server.pem in the current directory.
-"""
+""")
     sys.exit(0)
 
 if '--ssl' in sys.argv:
@@ -50,14 +50,14 @@ s.connect(('localhost', 4712))
 
 class ReaderThread(threading.Thread):
     def run(self, *arg, **kw):
-        res = s.recv()
+        res = s.recv(1024)
         while res:
-            print "rcv(%s)" % (repr(res),)
-            res = s.recv()
+            print("rcv(%s)" % (repr(res),))
+            res = s.recv(1024)
 
 reader = ReaderThread()
 reader.start()
 
-s.send('{"params":[],"method":"ping","id":1}')
+s.send(b'{"params":[],"method":"ping","id":1}')
 time.sleep(1)
-s.send('{"params":[],"method":"ping","id":1}')
+s.send(b'{"params":[],"method":"ping","id":1}')

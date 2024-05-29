@@ -22,12 +22,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
-import symmetricjsonrpc, sys
+import symmetricjsonrpc3, sys
 
-class PongRPCServer(symmetricjsonrpc.RPCServer):
-    class InboundConnection(symmetricjsonrpc.RPCServer.InboundConnection):
-        class Thread(symmetricjsonrpc.RPCServer.InboundConnection.Thread):
-            class Request(symmetricjsonrpc.RPCServer.InboundConnection.Thread.Request):
+class PongRPCServer(symmetricjsonrpc3.RPCServer):
+    class InboundConnection(symmetricjsonrpc3.RPCServer.InboundConnection):
+        class Thread(symmetricjsonrpc3.RPCServer.InboundConnection.Thread):
+            class Request(symmetricjsonrpc3.RPCServer.InboundConnection.Thread.Request):
                 def dispatch_notification(self, subject):
                     print("dispatch_notification(%s)" % (repr(subject),))
                     assert subject['method'] == "shutdown"
@@ -41,7 +41,7 @@ class PongRPCServer(symmetricjsonrpc.RPCServer):
                     print("dispatch_request(%s)" % (repr(subject),))
                     assert subject['method'] == "ping"
                     # Call the client back
-                    # self.parent is a symmetricjsonrpc.RPCClient subclass (see the client code for more examples)
+                    # self.parent is a symmetricjsonrpc3.RPCClient subclass (see the client code for more examples)
                     res = self.parent.request("pingping", wait_for_response=True)
                     print("parent.pingping => %s" % (repr(res),))
                     assert res == "pingpong"

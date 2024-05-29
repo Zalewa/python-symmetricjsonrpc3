@@ -50,8 +50,8 @@ s.listen(1)
 
 s2 = s.accept()[0]
 
-data = s2.recv()
+data = s2.recv(1024)
 while data:
     print(repr(data))
     s2.send(data)
-    data = s2.recv()
+    data = s2.recv(1024)
