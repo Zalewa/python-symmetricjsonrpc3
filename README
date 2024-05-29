@@ -1,4 +1,5 @@
-Python Symmetric JSON-RPC
+Python Symmetric JSON-RPC 3
+===========================
 
 "A symmetric, transport-layer agnostic JSON-RPC implemenation in python."
 
@@ -22,5 +23,8 @@ the following features:
 What this really drills down to is that this library implements the
 full specification of JSON-RPC over sockets.
 
+  This is a fork of niligulmohar's "symmetricjsonrpc" with the intent
+  of bringing it up-to-date with current Python and publishing it
+  to PyPI.
 
 For usage details, look at the examples in the "examples" directory.
