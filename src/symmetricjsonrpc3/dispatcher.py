@@ -27,6 +27,10 @@ synchronous I/O interface."""
 
 import select
 import threading
+from logging import getLogger
+
+
+logger = getLogger(__name__)
 
 
 class Thread(threading.Thread):
@@ -51,7 +55,7 @@ class Thread(threading.Thread):
         self._shutdown = False
         if 'name' not in kw:
             if self.parent:
-                kw['name'] = "%s/%s" % (self.parent.getName(), type(self).__name__)
+                kw['name'] = "%s/%s" % (self.parent.name, type(self).__name__)
             else:
                 kw['name'] = type(self).__name__
         threading.Thread.__init__(self, *arg, **kw)
@@ -63,24 +67,32 @@ class Thread(threading.Thread):
             self.parent.children.remove(self)
 
     def run(self, *arg, **kw):
-        if self.debug_thread: print("%s: BEGIN" % self.getName())
+        self._dbg("%s: BEGIN", self.name)
         self.run_thread(*arg, **kw)
-        if self.debug_thread: print("%s: TEARDOWN: %s" % (self.getName(), ', '.join(child.getName() for child in self.children)))
+        if self.debug_thread:  # perf check -- avoid the unnecessary join loop
+            self._dbg("%s: TEARDOWN: %s", self.name,
+                      ', '.join(child.name for child in self.children))
         self._exit()
-        if self.debug_thread: print("%s: END" % self.getName())
+        self._dbg("%s: END", self.name)
 
     def shutdown(self):
-        if self.debug_thread: print("%s: shutdown: %s" % (threading.currentThread().getName(), self.getName(),))
+        self._dbg("%s: shutdown: %s",
+                  threading.current_thread().name, self.name)
         for child in list(self.children):
             child.shutdown()
         self._shutdown = True
-        if self.debug_thread: print("%s: shutdown done: %s" % (threading.currentThread().getName(), self.getName(),))
+        self._dbg("%s: shutdown done: %s",
+                  threading.current_thread().name, self.name)
 
     def run_parent(self):
         pass
 
     def run_thread(self, *arg, **kw):
         pass
+
+    def _dbg(self, fmt, *args, **kwargs):
+        if self.debug_thread:
+            logger.debug(fmt, *args, **kwargs)
 
 
 class Connection(Thread):
@@ -92,15 +104,19 @@ class Connection(Thread):
 
     def run_thread(self):
         for value in self.read():
-            if self.debug_dispatch: print("%s: DISPATCH: %s" % (self.getName(), value))
+            self._dbg("%s: DISPATCH: %s", self.name, value)
             self.dispatch(value)
-            if self.debug_dispatch: print("%s: DISPATCH DONE: %s" % (self.getName(), value))
+            self._dbg("%s: DISPATCH DONE: %s", self.name, value)
 
     def read(self):
         pass
 
     def dispatch(self, subject):
         getattr(self, self._dispatcher_class)(parent=self, subject=subject)
+
+    def _dbg(self, fmt, *args, **kwargs):
+        if self.debug_dispatch:
+            logger.debug(fmt, *args, **kwargs)
 
 
 class ServerConnection(Connection):

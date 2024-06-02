@@ -27,10 +27,13 @@
 from __future__ import with_statement
 
 import threading
-import traceback
+from logging import getLogger
 
 from . import dispatcher
 from . import json
+
+
+logger = getLogger(__name__)
 
 
 class ClientConnection(dispatcher.Connection):
@@ -92,7 +95,7 @@ class RPCClient(ClientConnection):
                 try:
                     self.dispatch_notification(subject)
                 except:
-                    traceback.print_exc()
+                    logger.exception("dispatch_notification error")
 
         def dispatch_request(self, subject):
             pass

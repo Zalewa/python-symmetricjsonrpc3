@@ -24,10 +24,14 @@
 
 """JSON (de)serialization facilities."""
 
-import sys
 import io
+import sys
+from logging import getLogger
 
 from . import wrappers
+
+
+logger = getLogger(__name__)
 
 
 def from_json(str):
@@ -380,21 +384,82 @@ class Reader(Tokenizer):
         except EOFError:
             return
 
-class DebugTokenizer:
-    def pair_begin(self): print('('); print(self.state); return super(DebugTokenizer, self).pair_begin()
-    def pair_end(self): print(')'); print(self.state); return super(DebugTokenizer, self).pair_end()
-    def object_begin(self): print('{'); print(self.state); return super(DebugTokenizer, self).object_begin()
-    def object_end(self): print('}'); print(self.state); return super(DebugTokenizer, self).object_end()
-    def array_begin(self): print('['); print(self.state); return super(DebugTokenizer, self).array_begin()
-    def array_end(self): print(']'); print(self.state); return super(DebugTokenizer, self).array_end()
-    def string_begin(self): print('"'); print(self.state); return super(DebugTokenizer, self).string_begin()
-    def string_end(self): print('"'); print(self.state); return super(DebugTokenizer, self).string_end()
-    def number_begin(self): print('<'); print(self.state); return super(DebugTokenizer, self).number_begin()
-    def number_end(self): print('>'); print(self.state); return super(DebugTokenizer, self).number_end()
-    def char(self, c): print(repr(c)); print(self.state); return super(DebugTokenizer, self).char(c)
-    def true(self): print("TRUE"); print(self.state); return super(DebugTokenizer, self).true()
-    def false(self): print("FALSE"); print(self.state); return super(DebugTokenizer, self).false()
-    def null(self): print("NULL"); print(self.state); return super(DebugTokenizer, self).null()
-    def fail(self, msg): super(DebugTokenizer, self).fail(); raise Exception(msg)
 
-class DebugReader(DebugTokenizer, Reader): pass
+class DebugTokenizer:
+    def pair_begin(self):
+        logger.debug('(')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).pair_begin()
+
+    def pair_end(self):
+        logger.debug(')')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).pair_end()
+
+    def object_begin(self):
+        logger.debug('{')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).object_begin()
+
+    def object_end(self):
+        logger.debug('}')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).object_end()
+
+    def array_begin(self):
+        logger.debug('[')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).array_begin()
+
+    def array_end(self):
+        logger.debug(']')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).array_end()
+
+    def string_begin(self):
+        logger.debug('"')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).string_begin()
+
+    def string_end(self):
+        logger.debug('"')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).string_end()
+
+    def number_begin(self):
+        logger.debug('<')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).number_begin()
+
+    def number_end(self):
+        logger.debug('>')
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).number_end()
+
+    def char(self, c):
+        logger.debug(repr(c))
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).char(c)
+
+    def true(self):
+        logger.debug("TRUE")
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).true()
+
+    def false(self):
+        logger.debug("FALSE")
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).false()
+
+    def null(self):
+        logger.debug("NULL")
+        logger.debug(self.state)
+        return super(DebugTokenizer, self).null()
+
+    def fail(self, msg):
+        super(DebugTokenizer, self).fail()
+        raise Exception(msg)
+
+
+class DebugReader(DebugTokenizer, Reader):
+    pass

@@ -25,7 +25,10 @@
 """Utilities for abstracting I/O for sockets or file-like objects
 behind an identical interface."""
 import select
+from logging import getLogger
 
+
+logger = getLogger(__name__)
 
 debug_write = False
 debug_read = False
@@ -78,7 +81,8 @@ class WriterWrapper:
     def flush(self):
         data = self.buff
         self.buff = None
-        if debug_write: print("write(%s)" % (repr(data),))
+        if debug_write:
+            logger.debug("write(%s)", repr(data))
         while data:
             self._wait()
             data = data[self._write(data):]
@@ -147,7 +151,7 @@ class ReaderWrapper:
             raise StopIteration
         else:
             if debug_read:
-                print("read(%s)" % (repr(result),))
+                logger.debug("read(%s)", repr(result))
             return result
 
     def close(self):
