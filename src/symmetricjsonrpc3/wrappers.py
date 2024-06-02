@@ -24,6 +24,7 @@
 
 """Utilities for abstracting I/O for sockets or file-like objects
 behind an identical interface."""
+import io
 import select
 from logging import getLogger
 
@@ -57,7 +58,7 @@ class WriterWrapper:
         self.f = f
         self.buff = None
         self.poll = None
-        if hasattr(f, 'fileno'):
+        if _is_real_file(f):
             self.poll = select.poll()
             self.poll.register(f, select.POLLOUT | select.POLLERR | select.POLLHUP | select.POLLNVAL)
         self.closed = False
@@ -133,7 +134,7 @@ class ReaderWrapper:
     def __init__(self, f):
         self.file = f
         self.poll = None
-        if hasattr(f, 'fileno'):
+        if _is_real_file(f):
             self.poll = select.poll()
             self.poll.register(f, select.POLLIN | select.POLLPRI | select.POLLERR | select.POLLHUP | select.POLLNVAL)
         self.closed = False
@@ -206,3 +207,12 @@ class ReIterator:
             return self._prefix[-1]
         except StopIteration:
             raise EOFError()
+
+
+def _is_real_file(f):
+    if hasattr(f, 'fileno'):
+        try:
+            return f.fileno() is not None
+        except io.UnsupportedOperation:
+            pass
+    return False
