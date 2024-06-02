@@ -13,7 +13,7 @@ class TestJson(unittest.TestCase):
         reader = Reader(str)
         read_obj = reader.read_value()
         self.assertEqual(obj, read_obj)
-        io = self.tempfile.TemporaryFile()
+        io = self.tempfile.TemporaryFile("w+")
         Writer(io).write_value(obj)
         io.seek(0)
         reader1 = Reader(io)
@@ -25,12 +25,12 @@ class TestJson(unittest.TestCase):
 
     def test_to_json(self):
         STR = '["string",false,null]'
-        OBJ = [u"string", False, None]
+        OBJ = ["string", False, None]
         self.assertEqual(to_json(OBJ), STR)
 
     def test_from_json(self):
         STR = '{"array": ["string",false,null],"object":{"number":4711,"bool":true}}'
-        OBJ = {u"array": [u"string", False, None], u"object": {u"number": 4711, u"bool": True}}
+        OBJ = {"array": ["string", False, None], "object": {"number": 4711, "bool": True}}
         self.assertEqual(from_json(STR), OBJ)
 
     def test_single_number_from_json(self):
@@ -40,7 +40,7 @@ class TestJson(unittest.TestCase):
 
     def test_read_value(self):
         STR = '{"array": ["string",false,null],"object":{"number":4711,"bool":true}}'
-        OBJ = {u"array": [u"string", False, None], u"object": {u"number": 4711, u"bool": True}}
+        OBJ = {"array": ["string", False, None], "object": {"number": 4711, "bool": True}}
         self.assertReadEqual(STR, OBJ)
 
     def test_read_numbers(self):
@@ -49,22 +49,22 @@ class TestJson(unittest.TestCase):
 
     def test_read_escape_string(self):
         STR = r'"\b\f\n\r\t\u1234"'
-        OBJ = u"\b\f\n\r\t\u1234"
+        OBJ = "\b\f\n\r\t\u1234"
         self.assertReadEqual(STR, OBJ)
 
     def test_read_quote_string(self):
         STR = r'"\""'
-        OBJ = u"\""
+        OBJ = "\""
         self.assertReadEqual(STR, OBJ)
 
     def test_read_solidus_string(self):
         STR = r'"\/"'
-        OBJ = u"/"
+        OBJ = "/"
         self.assertReadEqual(STR, OBJ)
 
     def test_read_reverse_solidus_string(self):
         STR = r'"\\"'
-        OBJ = u"\\"
+        OBJ = "\\"
         self.assertReadEqual(STR, OBJ)
 
     def test_read_whitespace(self):
@@ -105,13 +105,13 @@ class TestJson(unittest.TestCase):
 
     def test_eof(self):
         obj = {'foo':1, 'bar':[1, 2]}
-        io0 = self.tempfile.TemporaryFile()
+        io0 = self.tempfile.TemporaryFile("w+")
         Writer(io0).write_value(obj)
         io0.seek(0)
         full_json_string = io0.read()
 
         for json_string, eof_error in ((full_json_string, False), (full_json_string[0:10], True), ('', True)):
-            io1 = self.tempfile.TemporaryFile()
+            io1 = self.tempfile.TemporaryFile("w+")
             io1.write(json_string)
             io1.seek(0)
             reader = Reader(io1)
@@ -124,7 +124,7 @@ class TestJson(unittest.TestCase):
         class Timeout(self.threading.Thread):
             def run(self1):
                 obj = {'foo':1, 'bar':[1, 2]}
-                io = self.tempfile.TemporaryFile()
+                io = self.tempfile.TemporaryFile("w+")
                 Writer(io).write_value(obj)
                 io.seek(0)
                 full_json_string = io.read()
@@ -134,7 +134,8 @@ class TestJson(unittest.TestCase):
                     reader = Reader(sockets[0])
 
                     for c in json_string:
-                        while not sockets[1].send(c): pass
+                        while not sockets[1].send(c.encode('ascii')):
+                            pass
                     sockets[1].close()
                     if eof_error:
                         self.assertRaises(EOFError, lambda: reader.read_value())

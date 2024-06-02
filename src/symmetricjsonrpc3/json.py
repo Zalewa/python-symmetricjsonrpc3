@@ -234,7 +234,7 @@ class Tokenizer:
                 d2 = self.s.next()
                 d3 = self.s.next()
                 d4 = self.s.next()
-                c = unichr(int(d1+d2+d3+d4, 16))
+                c = chr(int(d1+d2+d3+d4, 16))
             else: self._assert(c, '"\\/')
         self.char(c)
 
