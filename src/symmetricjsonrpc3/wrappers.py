@@ -24,11 +24,12 @@
 
 """Utilities for abstracting I/O for sockets or file-like objects
 behind an identical interface."""
+import select
+
 
 debug_write = False
 debug_read = False
 
-import select
 
 class WriterWrapper:
     """Provides a unified interface for writing to sockets or
@@ -94,15 +95,18 @@ class WriterWrapper:
     def _write(self, s):
         raise NotImplementedError
 
+
 class FileWriter(WriterWrapper):
     def _write(self, s):
         self.f.write(s)
         return len(s)
 
+
 class SocketWriter(WriterWrapper):
     def _write(self, s):
         res = self.f.send(s.encode('ascii'))
         return res
+
 
 class ReaderWrapper:
     """Provides a unified interface for reading from sockets or
@@ -162,13 +166,16 @@ class ReaderWrapper:
     def _read(self):
         raise NotImplementedError
 
+
 class FileReader(ReaderWrapper):
     def _read(self):
         return self.file.read(1)
 
+
 class SocketReader(ReaderWrapper):
     def _read(self):
         return self.file.recv(1).decode('ascii')
+
 
 class ReIterator:
     """An iterator wrapper that provides lookahead through the peek

@@ -22,12 +22,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
-"""Facilities for managing a hirearchy of threads each providing a
+"""Facilities for managing a hierarchy of threads each providing a
 synchronous I/O interface."""
 
 import select
 import threading
-import traceback
 
 
 class Thread(threading.Thread):
@@ -83,6 +82,7 @@ class Thread(threading.Thread):
     def run_thread(self, *arg, **kw):
         pass
 
+
 class Connection(Thread):
     """A connection manager thread base class."""
 
@@ -101,6 +101,7 @@ class Connection(Thread):
 
     def dispatch(self, subject):
         getattr(self, self._dispatcher_class)(parent=self, subject=subject)
+
 
 class ServerConnection(Connection):
     """Connection manager thread handling a listening socket,
@@ -121,9 +122,10 @@ class ServerConnection(Connection):
                 socket, address = self.subject.accept()
                 yield socket
 
+
 class ThreadedClient(Thread):
     """A dispatch manager that can be used to wrap some other dispatch
-    manager to have it started and entierly run inside an extra
+    manager to have it started and entirely run inside an extra
     thread. This is actually useful to wrap connection managers with
     too, to have their run_parent() run inside a separate thread
     too. See the RPC module for a good example of this."""

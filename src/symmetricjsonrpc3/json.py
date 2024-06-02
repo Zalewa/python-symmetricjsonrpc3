@@ -29,35 +29,38 @@ import io
 
 from . import wrappers
 
+
 def from_json(str):
-    """Return a python object representing the json value in str."""
+    """Return a Python object representing the JSON value in str."""
     r = Reader(str)
     return r.read_value()
 
+
 def to_json(obj):
-    """Return a json string representing the python object obj."""
+    """Return a JSON string representing the Python object obj."""
     i = io.StringIO()
     w = Writer(i, encoding='UTF-8')
     w.write_value(obj)
     return i.getvalue()
 
+
 class Writer:
-    """A serializer for python values to JSON. Allowed types for
+    """A serializer for Python values to JSON. Allowed types for
     values to serialize are:
 
         * None
         * True
         * False
-        * Integer
-        * Float
-        * String
-        * Unicode
-        * List
-        * Dict (keys must be String or Unicode)
+        * int
+        * float
+        * str
+        * bytes
+        * list
+        * dict (keys must be str)
         * any object with a __to_json__ method
 
     The writer must be instantiated with a file-like object to write
-    the serialized json to as sole argument. To actually serialize
+    the serialized JSON to as sole argument. To actually serialize
     data, call the write_value() or write_values() methods."""
 
     def __init__(self, s, encoding=None):
@@ -132,6 +135,7 @@ class Writer:
     def unflushed_write_values(self, values):
         for value in values:
             self.unflushed_write_value(value)
+
 
 class Tokenizer:
     """A SAX-like recursive-descent parser for JSON.
@@ -313,6 +317,7 @@ class Tokenizer:
     def read_values(self):
         while True:
             self._read_value()
+
 
 class Reader(Tokenizer):
     """A JSON parser that parses JSON strings read from a file-like

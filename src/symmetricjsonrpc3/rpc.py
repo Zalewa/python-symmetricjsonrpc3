@@ -32,6 +32,7 @@ import traceback
 from . import dispatcher
 from . import json
 
+
 class ClientConnection(dispatcher.Connection):
     """A connection manager for a connected socket (or similar) that
     reads and dispatches JSON values."""
@@ -49,17 +50,19 @@ class ClientConnection(dispatcher.Connection):
     def read(self):
         return self.reader.read_values()
 
+
 class TimeoutError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+
 class RPCClient(ClientConnection):
-    """A JSON RPC client connection manager.
+    """A JSON-RPC client connection manager.
 
     This class represents a single client-server connection on both
     the conecting and listening side. It provides methods for issuing
     requests and sending notifications, as well as handles incoming
-    JSON RPC request, responses and notifications and dispatches them
+    JSON-RPC request, responses and notifications and dispatches them
     in separate threads.
 
     The dispatched threads are instances of RPCClient.Dispatch, and
@@ -143,9 +146,10 @@ class RPCClient(ClientConnection):
             return self.request(name, list(arg), wait_for_response=True)
         return rpc_wrapper
 
+
 class RPCServer(dispatcher.ServerConnection):
-    """A JSON RPC server connection manager. This class manages a
-    listening sockets and recieves and dispatches new inbound
+    """A JSON-RPC server connection manager. This class manages a
+    listening sockets and receives and dispatches new inbound
     connections. Each inbound connection is awarded two threads, one
     that can call the other side if there is a need, and one that
     handles incoming requests, responses and notifications.
@@ -159,6 +163,7 @@ class RPCServer(dispatcher.ServerConnection):
             def run_parent(self):
                 """Server can call client from here..."""
                 pass
+
 
 class RPCP2PNode(dispatcher.ThreadedClient):
     class Thread(RPCServer):
