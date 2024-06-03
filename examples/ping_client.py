@@ -3,8 +3,6 @@
 # vim: set fileencoding=UTF-8 :
 
 # python-symmetricjsonrpc3
-# Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
-# Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
 # Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -55,7 +53,9 @@ class PingRPCClient(symmetricjsonrpc3.RPCClient):
 def parse_args():
     global g_loglevel
 
-    argp = argparse.ArgumentParser()
+    argp = argparse.ArgumentParser(
+        description=("Ping client example, meant to "
+                     "be used with ping_client.py."))
     argp.add_argument("-H", "--host", default="localhost",
                       help="host to connect to [%(default)s]")
     argp.add_argument("-p", "--port", default=4712,
@@ -94,7 +94,7 @@ s.connect((args.host, args.port))
 log(DEBUG, f"Connected to ({args.host}:{args.port})")
 
 # Create a client thread handling for incoming requests
-log(DEBUG, "Creating Pong client ...")
+log(DEBUG, "Creating Ping client ...")
 client = PingRPCClient(s)
 
 # Call a method on the server

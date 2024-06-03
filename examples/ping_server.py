@@ -3,8 +3,6 @@
 # vim: set fileencoding=UTF-8 :
 
 # python-symmetricjsonrpc3
-# Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
-# Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
 # Copyright (C) 2024 Robert "Robikz" Zalewski <zalewapl@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -38,7 +36,7 @@ def log(level, *args, **kwargs):
         print(f"{level[1]}:", *args, **kwargs)
 
 
-class PongRPCServer(symmetricjsonrpc3.RPCServer):
+class PingRPCServer(symmetricjsonrpc3.RPCServer):
     class InboundConnection(symmetricjsonrpc3.RPCServer.InboundConnection):
         class Thread(symmetricjsonrpc3.RPCServer.InboundConnection.Thread):
             class Request(symmetricjsonrpc3.RPCServer.InboundConnection.Thread.Request):
@@ -72,7 +70,9 @@ class PongRPCServer(symmetricjsonrpc3.RPCServer):
 def parse_args():
     global g_loglevel
 
-    argp = argparse.ArgumentParser()
+    argp = argparse.ArgumentParser(
+        description=("Ping server example, meant to "
+                     "be used with ping_client.py."))
     argp.add_argument("-H", "--host", default="localhost",
                       help="hostname to listen on [%(default)s]")
     argp.add_argument("-p", "--port", default=4712,
@@ -110,8 +110,8 @@ s.listen(1)
 log(INFO, f"Listening on ({args.host}:{args.port}) ...")
 
 # Create a server thread handling incoming connections
-log(DEBUG, "Creating Pong server ...")
-server = PongRPCServer(s, name="PongServer")
+log(DEBUG, "Creating Ping server ...")
+server = PingRPCServer(s, name="PingServer")
 
 try:
     log(INFO, "Serving clients ...")
