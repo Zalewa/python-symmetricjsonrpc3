@@ -21,28 +21,55 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
-import sys
+import argparse
 import symmetricjsonrpc3
+
+
+g_loglevel = 0
+
+COMM = -1
+INFO = 0
+DEBUG = 1
+
+
+def log(level, *args, **kwargs):
+    if g_loglevel >= level:
+        print(*args, **kwargs)
 
 
 class PingRPCClient(symmetricjsonrpc3.RPCClient):
     class Request(symmetricjsonrpc3.RPCClient.Request):
         def dispatch_request(self, subject):
             # Handle callbacks from the server
-            print("dispatch_request(%s)" % (repr(subject),))
+            log(COMM, f"-> REQ: dispatch_request({repr(subject)})")
             assert subject['method'] == "pingping"
             return "pingpong"
 
 
-if '--help' in sys.argv:
-    print("""client.py
-    --ssl
-        Encrypt communication with SSL using M2Crypto. Requires a
-        server.pem in the current directory.
-""")
-    sys.exit(0)
+def parse_args():
+    global g_loglevel
 
-if '--ssl' in sys.argv:
+    argp = argparse.ArgumentParser()
+    argp.add_argument("-H", "--host", default="localhost",
+                      help="host to connect to [%(default)s]")
+    argp.add_argument("-p", "--port", default=4712,
+                      help="port to connect to [%(default)s]")
+    argp.add_argument("-q", "--quiet", default=0, action="count",
+                      help="decrease verbosity level")
+    argp.add_argument("-v", "--verbose", default=0, action="count",
+                      help="increase verbosity level")
+    argp.add_argument("--ssl", action="store_true", help=(
+        "Encrypt communication with SSL using M2Crypto. "
+        "Requires a server.pem in the current directory."))
+
+    args = argp.parse_args()
+    g_loglevel = args.verbose - args.quiet
+    return args
+
+
+args = parse_args()
+
+if args.ssl:
     # Set up an SSL connection
     import M2Crypto
     ctx = M2Crypto.SSL.Context()
@@ -56,17 +83,25 @@ else:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 #  Connect to the server
-s.connect(('localhost', 4712))
+log(INFO, f"Connecting to ({args.host}:{args.port}) ...")
+s.connect((args.host, args.port))
+log(DEBUG, f"Connected to ({args.host}:{args.port})")
 
 # Create a client thread handling for incoming requests
+log(DEBUG, "Creating Pong client ...")
 client = PingRPCClient(s)
 
 # Call a method on the server
+log(INFO, "Sending 'ping' request ...")
 res = client.request("ping", wait_for_response=True)
-print("client.ping => %s" % (repr(res),))
+log(COMM, f"-> RES: client.ping => {repr(res)}")
 assert res == "pong"
 
 # Notify server it can shut down
+log(DEBUG, "Telling server to shut down ...")
 client.notify("shutdown")
 
+log(DEBUG, "Shutting down ourselves ...")
 client.shutdown()
+
+log(INFO, "Done!")
