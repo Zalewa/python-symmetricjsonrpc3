@@ -63,7 +63,7 @@ class RPCClient(ClientConnection):
     """A JSON-RPC client connection manager.
 
     This class represents a single client-server connection on both
-    the conecting and listening side. It provides methods for issuing
+    the connecting and listening side. It provides methods for issuing
     requests and sending notifications, as well as handles incoming
     JSON-RPC request, responses and notifications and dispatches them
     in separate threads.
