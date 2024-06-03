@@ -18,9 +18,9 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 import unittest
+from collections import OrderedDict
 
-from symmetricjsonrpc3.json import (Reader, Tokenizer, Writer,
-                                    from_json, to_json)
+from symmetricjsonrpc3.json import Reader, Writer, from_json, to_json
 
 
 class TestJson(unittest.TestCase):
@@ -102,10 +102,10 @@ class TestJson(unittest.TestCase):
             self.assertEqual(r, values[i])
 
     def test_encode_invalid_control_character(self):
-        self.assertRaises(Exception, lambda: json('\x00', self.tempfile.TemporaryFile()))
+        self.assertRaises(Exception, lambda: to_json('\x00'))
 
     def test_encode_invalid_object(self):
-        self.assertRaises(Exception, lambda: json(Tokenizer(""), self.tempfile.TemporaryFile()))
+        self.assertRaises(Exception, lambda: to_json(object))
 
     def test_read_object(self):
         STR = '{"__jsonclass__":["foo","bar"],"naja":123}'
@@ -178,6 +178,6 @@ class TestJson(unittest.TestCase):
                 self.x = x
 
             def __to_json__(self):
-                return {'__jsonclass__': ['SomeObj'], 'x': self.x}
+                return OrderedDict([('x', self.x), ('__jsonclass__', ['SomeObj'])])
 
         self.assertWriteEqual('{"x":4711,"__jsonclass__":["SomeObj"]}', SomeObj(4711))
