@@ -22,9 +22,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 """A symmetric and transport agnostic JSON-RPC implementation."""
-from .dispatcher import Connection, ServerConnection, Thread, ThreadedClient
-from .json import Reader, Tokenizer, Writer, from_json, to_json
-from .rpc import ClientConnection, RPCClient, RPCP2PNode, RPCServer
 
 __all__ = [
     "ClientConnection",
@@ -41,3 +38,14 @@ __all__ = [
     "from_json",
     "to_json"
 ]
+
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("symmetricjsonrpc3")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
+from .dispatcher import Connection, ServerConnection, Thread, ThreadedClient
+from .json import Reader, Tokenizer, Writer, from_json, to_json
+from .rpc import ClientConnection, RPCClient, RPCP2PNode, RPCServer
