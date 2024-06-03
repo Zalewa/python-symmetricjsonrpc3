@@ -27,14 +27,15 @@ import symmetricjsonrpc3
 
 g_loglevel = 0
 
-COMM = -1
-INFO = 0
-DEBUG = 1
+ERROR = (-2, "E")
+COMM = (-1, "C")
+INFO = (0, "I")
+DEBUG = (1, "D")
 
 
 def log(level, *args, **kwargs):
-    if g_loglevel >= level:
-        print(*args, **kwargs)
+    if g_loglevel >= level[0]:
+        print(f"{level[1]}:", *args, **kwargs)
 
 
 class PongRPCServer(symmetricjsonrpc3.RPCServer):
@@ -42,23 +43,30 @@ class PongRPCServer(symmetricjsonrpc3.RPCServer):
         class Thread(symmetricjsonrpc3.RPCServer.InboundConnection.Thread):
             class Request(symmetricjsonrpc3.RPCServer.InboundConnection.Thread.Request):
                 def dispatch_notification(self, subject):
-                    log(COMM, "-> NOT: dispatch_notification(%s)" % (repr(subject),))
-                    assert subject['method'] == "shutdown"
-                    # Shutdown the server. Note: We must use a
-                    # notification, not a method for this - when the
-                    # server's dead, there's no way to inform the
-                    # client that it is...
-                    self.parent.parent.parent.shutdown()
+                    log(COMM, f"-> NOT: dispatch_notification({repr(subject)})")
+                    if subject['method'] == "shutdown":
+                        # Shutdown the server. Note: We must use a
+                        # notification, not a method for this - when the
+                        # server's dead, there's no way to inform the
+                        # client that it is...
+                        self.parent.parent.parent.shutdown()
+                    else:
+                        log(ERROR, f"-> NOT: unexpected method: {subject['method']}")
 
                 def dispatch_request(self, subject):
-                    log(COMM, "-> REQ: dispatch_request(%s)" % (repr(subject),))
-                    assert subject['method'] == "ping"
-                    # Call the client back
-                    # self.parent is a symmetricjsonrpc3.RPCClient subclass
-                    res = self.parent.request("pingping", wait_for_response=True)
-                    log(COMM, "-> RES: parent.pingping => %s" % (repr(res),))
-                    assert res == "pingpong"
-                    return "pong"
+                    log(COMM, f"-> REQ: dispatch_request({repr(subject)})")
+                    if subject['method'] == "ping":
+                        # Call the client back
+                        # self.parent is a symmetricjsonrpc3.RPCClient subclass
+                        res = self.parent.request("pingping", wait_for_response=True)
+                        log(COMM, f"-> RES: parent.pingping => {repr(res)}")
+                        if res != "pingpong":
+                            log(ERROR, f"-> RES: unexpected 'pingping' response => {repr(res)}")
+                        return "pong"
+                    else:
+                        log(ERROR, f"-> REQ: unexpected method: {repr(subject)}")
+                        # A well-behaved server would send an error response here.
+                        return None
 
 
 def parse_args():

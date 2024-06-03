@@ -27,14 +27,15 @@ import symmetricjsonrpc3
 
 g_loglevel = 0
 
-COMM = -1
-INFO = 0
-DEBUG = 1
+ERROR = (-2, "E")
+COMM = (-1, "C")
+INFO = (0, "I")
+DEBUG = (1, "D")
 
 
 def log(level, *args, **kwargs):
-    if g_loglevel >= level:
-        print(*args, **kwargs)
+    if g_loglevel >= level[0]:
+        print(f"{level[1]}:", *args, **kwargs)
 
 
 class PingRPCClient(symmetricjsonrpc3.RPCClient):
@@ -42,8 +43,13 @@ class PingRPCClient(symmetricjsonrpc3.RPCClient):
         def dispatch_request(self, subject):
             # Handle callbacks from the server
             log(COMM, f"-> REQ: dispatch_request({repr(subject)})")
-            assert subject['method'] == "pingping"
-            return "pingpong"
+            if subject['method'] == "pingping":
+                log(COMM, "-> REQ: responding with 'pingpong'")
+                return "pingpong"
+            else:
+                log(ERROR, f"-> REQ: unexpected method {subject['method']}")
+                # A well-behaved client would send an error response here.
+                return None
 
 
 def parse_args():
@@ -95,7 +101,8 @@ client = PingRPCClient(s)
 log(INFO, "Sending 'ping' request ...")
 res = client.request("ping", wait_for_response=True)
 log(COMM, f"-> RES: client.ping => {repr(res)}")
-assert res == "pong"
+if res != "pong":
+    log(ERROR, f"-> RES: unexpected response: {repr(res)}")
 
 # Notify server it can shut down
 log(DEBUG, "Telling server to shut down ...")
