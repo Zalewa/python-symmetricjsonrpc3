@@ -1,9 +1,9 @@
-Python Symmetric JSON-RPC 3
-===========================
+Python Symmetric JSON-RPC 2.0, v3
+=================================
 
-"A symmetric, transport-layer agnostic JSON-RPC implementation in Python."
+"A symmetric, transport-layer agnostic JSON-RPC 2.0 implementation in Python."
 
-A JSON-RPC (see https://jsonrpc.org) implementation for Python with
+A JSON-RPC 2.0 (see https://jsonrpc.org) implementation for Python with
 the following features:
 
  * Symmetric - both the connecting and the listening processes can send
@@ -22,7 +22,7 @@ the following features:
 
  * Dependency free
 
-This library implements the full specification of JSON-RPC over sockets.
+This library implements the full specification of JSON-RPC 2.0 over sockets.
 
   This is a fork of niligulmohar's "symmetricjsonrpc" with the intent
   of bringing it up-to-date with current Python and publishing it
