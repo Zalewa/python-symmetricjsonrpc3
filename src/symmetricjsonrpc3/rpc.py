@@ -23,9 +23,6 @@
 # USA
 
 """JSON-RPC implementation classes."""
-
-from __future__ import with_statement
-
 import threading
 from logging import getLogger
 
