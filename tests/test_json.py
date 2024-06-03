@@ -109,9 +109,10 @@ class TestJson(unittest.TestCase):
 
     def test_read_object(self):
         STR = '{"__jsonclass__":["foo","bar"],"naja":123}'
+
         def foo(arg, kw):
             assert arg == ["bar"]
-            assert kw == {"naja":123}
+            assert kw == {"naja": 123}
             return True
         reader = Reader(STR, {'foo': foo})
         assert reader.read_value() is True
@@ -123,13 +124,15 @@ class TestJson(unittest.TestCase):
         self.assertRaises(self.socket.error, lambda: reader.read_value())
 
     def test_eof(self):
-        obj = {'foo':1, 'bar':[1, 2]}
+        obj = {'foo': 1, 'bar': [1, 2]}
         io0 = self.tempfile.TemporaryFile("w+")
         Writer(io0).write_value(obj)
         io0.seek(0)
         full_json_string = io0.read()
 
-        for json_string, eof_error in ((full_json_string, False), (full_json_string[0:10], True), ('', True)):
+        for json_string, eof_error in [(full_json_string, False),
+                                       (full_json_string[0:10], True),
+                                       ('', True)]:
             io1 = self.tempfile.TemporaryFile("w+")
             io1.write(json_string)
             io1.seek(0)
@@ -142,13 +145,15 @@ class TestJson(unittest.TestCase):
     def test_closed_socket(self):
         class Timeout(self.threading.Thread):
             def run(self1):
-                obj = {'foo':1, 'bar':[1, 2]}
+                obj = {'foo': 1, 'bar': [1, 2]}
                 io = self.tempfile.TemporaryFile("w+")
                 Writer(io).write_value(obj)
                 io.seek(0)
                 full_json_string = io.read()
 
-                for json_string, eof_error in ((full_json_string, False), (full_json_string[0:10], True), ('', True)):
+                for json_string, eof_error in [(full_json_string, False),
+                                               (full_json_string[0:10], True),
+                                               ('', True)]:
                     sockets = self.socket.socketpair()
                     reader = Reader(sockets[0])
 

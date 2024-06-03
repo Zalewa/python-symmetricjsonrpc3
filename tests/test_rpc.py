@@ -58,7 +58,8 @@ class _ThreadedEchoServer(dispatcher.ServerConnection):
 class _PingRPCClient(RPCClient):
     class Request(RPCClient.Request):
         def dispatch_request(self, subject):
-            if debug_tests: print("PingClient: dispatch_request", subject)
+            if debug_tests:
+                print("PingClient: dispatch_request", subject)
             assert subject['method'] == "pingping"
             return "pingpong"
 
@@ -68,10 +69,12 @@ class _PongRPCServer(RPCServer):
         class Thread(RPCServer.InboundConnection.Thread):
             class Request(RPCServer.InboundConnection.Thread.Request):
                 def dispatch_request(self, subject):
-                    if debug_tests: print("TestPongRPCServer: dispatch_request", subject)
+                    if debug_tests:
+                        print("TestPongRPCServer: dispatch_request", subject)
                     assert subject['method'] == "ping"
                     assert self.parent.request("pingping", wait_for_response=True) == "pingpong"
-                    if debug_tests: print("TestPongRPCServer: back-pong")
+                    if debug_tests:
+                        print("TestPongRPCServer: back-pong")
                     return "pong"
 
 
@@ -81,13 +84,17 @@ class _PongRPCP2PServer(RPCP2PNode):
             class Thread(RPCP2PNode.Thread.InboundConnection.Thread):
                 class Request(RPCP2PNode.Thread.InboundConnection.Thread.Request):
                     def dispatch_request(self, subject):
-                        if debug_tests: print("TestPongRPCP2PServer: dispatch_request", subject)
+                        if debug_tests:
+                            print("TestPongRPCP2PServer: dispatch_request", subject)
                         if subject['method'] == "ping":
-                            assert self.parent.request("pingping", wait_for_response=True) == "pingpong"
-                            if debug_tests: print("TestPongRPCServer: back-pong")
+                            assert self.parent.request("pingping", wait_for_response=True) \
+                                == "pingpong"
+                            if debug_tests:
+                                print("TestPongRPCServer: back-pong")
                             return "pong"
                         elif subject['method'] == "pingping":
-                            if debug_tests: print("PingClient: dispatch_request", subject)
+                            if debug_tests:
+                                print("PingClient: dispatch_request", subject)
                             return "pingpong"
                         else:
                             assert False
@@ -114,12 +121,12 @@ def _make_client_socket():
 class TestRpc(unittest.TestCase):
     def test_client(self):
         sockets = socket.socketpair()
-        echo_server = _EchoClient(sockets[1])
+        _EchoClient(sockets[1])
 
         reader = json.Reader(sockets[0])
         writer = json.Writer(sockets[0])
 
-        obj = {'foo':1, 'bar':[1, 2]}
+        obj = {'foo': 1, 'bar': [1, 2]}
         writer.write_value(obj)
         return_obj = reader.read_value()
         self.assertEqual(obj, return_obj)
@@ -130,7 +137,7 @@ class TestRpc(unittest.TestCase):
 
         client_socket = _make_client_socket()
         writer = json.Writer(client_socket)
-        writer.write_value({'foo':1, 'bar':2})
+        writer.write_value({'foo': 1, 'bar': 2})
         client_socket.close()
 
         echo_server.shutdown()
@@ -145,7 +152,7 @@ class TestRpc(unittest.TestCase):
             reader = json.Reader(client_socket)
             writer = json.Writer(client_socket)
 
-            obj = {'foo':1, 'bar':[1, 2]}
+            obj = {'foo': 1, 'bar': [1, 2]}
             writer.write_value(obj)
             return_obj = reader.read_value()
 
@@ -161,7 +168,7 @@ class TestRpc(unittest.TestCase):
             client_socket = _make_client_socket()
             writer = json.Writer(client_socket)
 
-            obj = {'foo':1, 'bar':[1, 2]}
+            obj = {'foo': 1, 'bar': [1, 2]}
             writer.write_value(obj)
 
             reader = json.Reader(client_socket)
@@ -196,6 +203,7 @@ class TestRpc(unittest.TestCase):
 
             server.shutdown()
             server.join()
+
 
 if __name__ == "__main__":
     unittest.main()
