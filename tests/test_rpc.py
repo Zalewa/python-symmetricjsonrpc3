@@ -22,7 +22,7 @@ import time
 import unittest
 
 from symmetricjsonrpc3 import json
-from symmetricjsonrpc3.rpc import (ClientConnection, RPCClient, RPCP2PNode,
+from symmetricjsonrpc3.rpc import (ClientConnection, RPCClient,
                                    RPCServer,
                                    dispatcher)
 
@@ -76,32 +76,6 @@ class _PongRPCServer(RPCServer):
                     if debug_tests:
                         print("TestPongRPCServer: back-pong")
                     return "pong"
-
-
-class _PongRPCP2PServer(RPCP2PNode):
-    class Thread(RPCP2PNode.Thread):
-        class InboundConnection(RPCP2PNode.Thread.InboundConnection):
-            class Thread(RPCP2PNode.Thread.InboundConnection.Thread):
-                class Request(RPCP2PNode.Thread.InboundConnection.Thread.Request):
-                    def dispatch_request(self, subject):
-                        if debug_tests:
-                            print("TestPongRPCP2PServer: dispatch_request", subject)
-                        if subject['method'] == "ping":
-                            assert self.parent.request("pingping", wait_for_response=True) \
-                                == "pingpong"
-                            if debug_tests:
-                                print("TestPongRPCServer: back-pong")
-                            return "pong"
-                        elif subject['method'] == "pingping":
-                            if debug_tests:
-                                print("PingClient: dispatch_request", subject)
-                            return "pingpong"
-                        else:
-                            assert False
-
-        def run_parent(self):
-            client = self.InboundConnection.Thread(_make_client_socket())
-            self.parent.parent['result'] = client.request("ping", wait_for_response=True) == "pong"
 
 
 def _make_server_socket():
@@ -187,20 +161,6 @@ class TestRpc(unittest.TestCase):
             client = _PingRPCClient(client_socket)
             self.assertEqual(client.request("ping", wait_for_response=True), "pong")
             self.assertEqual(client.ping(), "pong")
-            server.shutdown()
-            server.join()
-
-    def test_rpc_p2p_server(self):
-        for n in range(3):
-            server_socket = _make_server_socket()
-            res = {}
-            server = _PongRPCP2PServer(server_socket, res, name="PongServer")
-            for x in range(0, 4):
-                if 'result' in res:
-                    break
-                time.sleep(1)
-            assert 'result' in res and res['result']
-
             server.shutdown()
             server.join()
 

@@ -163,10 +163,3 @@ class RPCServer(dispatcher.ServerConnection):
             def run_parent(self):
                 """Server can call client from here..."""
                 pass
-
-
-class RPCP2PNode(dispatcher.ThreadedClient):
-    class Thread(RPCServer):
-        def run_parent(self):
-            """Server can make connections from here by calling self.Dispatch()"""
-            pass
