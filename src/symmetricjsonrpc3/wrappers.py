@@ -114,22 +114,28 @@ class SocketWriter(WriterWrapper):
 
 
 class ReaderWrapper:
-    """Provides a unified interface for reading from sockets or
-    file-like objects.
+    """Provides a unified interface for reading from sockets,
+    file-like objects or even strings.
 
     Its instances will actually belong to one of its subclasses,
     depending on what type of object it wraps."""
     poll_timeout = 1000
 
     def __new__(cls, f):
-        if cls is not ReaderWrapper:
-            return object.__new__(cls)
-        elif hasattr(f, "recv"):
-            return SocketReader(f)
-        elif hasattr(f, "read"):
-            return FileReader(f)
-        else:
-            return f
+        def get_cls():
+            if cls is not ReaderWrapper:
+                return cls
+            elif isinstance(f, bytes):
+                return BytesReader
+            elif isinstance(f, str):
+                return StringReader
+            elif hasattr(f, "recv"):
+                return SocketReader
+            elif hasattr(f, "read"):
+                return FileReader
+            return None
+        cls = get_cls()
+        return super().__new__(cls) if cls is not None else f
 
     def __init__(self, f):
         self.file = f
@@ -155,6 +161,17 @@ class ReaderWrapper:
                 logger.debug("read(%s)", repr(result))
             return result
 
+    def read(self, n=None):
+        try:
+            self._wait()
+        except EOFError:
+            chunk = ''
+        else:
+            chunk = self._read(n)
+            if debug_read:
+                logger.debug("read(%s)", repr(chunk))
+        return chunk
+
     def close(self):
         self.closed = True
         self.file.close()
@@ -168,45 +185,31 @@ class ReaderWrapper:
         if self.closed:
             raise EOFError
 
-    def _read(self):
+    def _read(self, n):
         raise NotImplementedError
 
 
 class FileReader(ReaderWrapper):
-    def _read(self):
-        return self.file.read(1)
+    def _read(self, n):
+        return self.file.read(n)
+
+
+class BytesReader(FileReader):
+    def __init__(self, f):
+        super().__init__(io.BytesIO(f))
+
+
+class StringReader(FileReader):
+    def __init__(self, f):
+        super().__init__(io.StringIO(f))
 
 
 class SocketReader(ReaderWrapper):
-    def _read(self):
-        return self.file.recv(1).decode('ascii')
-
-
-class ReIterator:
-    """An iterator wrapper that provides lookahead through the peek
-    method."""
-    def __init__(self, i):
-        self._prefix = [] # In reverse order!
-        self._i = iter(i)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        if self._prefix:
-            return self._prefix.pop(0)
-        return next(self._i)
-
-    def _put(self, value):
-        self._prefix.append(value)
-
-    def peek(self):
-        try:
-            if not self._prefix:
-                self._put(next(self._i))
-            return self._prefix[-1]
-        except StopIteration:
-            raise EOFError()
+    def _read(self, n):
+        if n is None or n <= 0:
+            n = 1024
+        chunk = self.file.recv(n)
+        return chunk.decode('ascii') if chunk else ''
 
 
 def _is_real_file(f):
