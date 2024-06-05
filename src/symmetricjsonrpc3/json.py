@@ -251,36 +251,76 @@ class JSONLiteralScanner(JSONScanner):
 class JSONNumberScanner(JSONScanner):
     def __init__(self):
         super().__init__()
-        self._found_first_digit = False
-        self._found_dot = False
         self._scan_pos = None
-        self._bad = False
+        self._phase_scan = self._scan_begin
+        self._found_first_digit = False
+        self._e_pos = None
 
     def _scan(self, batch):
-        if self._scan_pos is None:
-            self._scan_pos = self.pos
-        for c in batch:
-            if c == "-":
-                self.pos = self._scan_pos
-                if self.pos != self._first_symbol_pos:
-                    return self.pos
-            elif c == ".":
-                if not self._found_first_digit:
-                    self.pos = self._scan_pos + 1
-                    return self.pos
-                if self._found_dot:
-                    self.pos = self._scan_pos
-                    return self.pos
-                self._found_dot = True
-            elif c.isdigit():
-                self.pos = self._scan_pos + 1
-                self._found_first_digit = True
-            else:
-                if not self._found_first_digit:
-                    self.pos += 1
-                return self.pos
+        pos = None
+        while batch and pos is None:
+            pos, batch = self._phase_scan(batch)
+        return pos
+
+    def _scan_begin(self, batch):
+        self.pos += 1
+        self._scan_pos = self.pos
+        self._phase_scan = self._scan_integer
+        c = batch[0]
+        if c == "-" or c.isdigit():
+            self._found_first_digit = c.isdigit()
+            batch = batch[1:]
+            return None, batch
+        else:
+            return self.pos, ''
+
+    def _scan_integer(self, batch):
+        for idx, c in enumerate(batch):
             self._scan_pos += 1
-        return None
+            if c == ".":
+                self._phase_scan = self._scan_fraction
+                if self._found_first_digit:
+                    return None, batch[idx + 1:]
+                else:
+                    self.pos = self._scan_pos
+                    return self.pos, ''
+            elif c.isdigit():
+                self._found_first_digit = True
+                self.pos = self._scan_pos
+            elif c in 'eE':
+                self._e_pos = self._scan_pos
+                self._phase_scan = self._scan_scientific
+                if self._found_first_digit:
+                    return None, batch[idx + 1:]
+                else:
+                    return self.pos, ''
+            else:
+                return self.pos, ''
+        return None, ''
+
+    def _scan_fraction(self, batch):
+        for idx, c in enumerate(batch):
+            self._scan_pos += 1
+            if c.isdigit():
+                self.pos = self._scan_pos
+            elif c in 'eE':
+                self._e_pos = self._scan_pos
+                self._phase_scan = self._scan_scientific
+                return None, batch[idx + 1:]
+            else:
+                return self.pos, ''
+        return None, ''
+
+    def _scan_scientific(self, batch):
+        for c in batch:
+            self._scan_pos += 1
+            if c.isdigit():
+                self.pos = self._scan_pos
+            elif self._scan_pos == self._e_pos + 1 and c in '+-':
+                pass
+            else:
+                return self.pos, ''
+        return None, ''
 
 
 class JSONStringScanner(JSONScanner):

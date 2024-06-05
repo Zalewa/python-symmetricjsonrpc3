@@ -264,6 +264,33 @@ class TestJSONNumberScanner(unittest.TestCase):
         self.assertIsNone(self.jsonscanner.scan("-313.37"))
         self.assertEqual(self.jsonscanner.pos, 7)
 
+    def test_scan_scientific_notation(self):
+        Scanner = JSONNumberScanner
+        self.assertEqual(Scanner().scan("1.2E10 "), 6)
+        self.assertEqual(Scanner().scan("1.2e10 "), 6)
+        self.assertEqual(Scanner().scan("1.2E+10 "), 7)
+        self.assertEqual(Scanner().scan("1.2e+10 "), 7)
+        self.assertEqual(Scanner().scan("1.2E-10 "), 7)
+        self.assertEqual(Scanner().scan("1.2e-10 "), 7)
+        self.assertEqual(Scanner().scan("1E10 "), 4)
+        self.assertEqual(Scanner().scan("1e10 "), 4)
+        self.assertEqual(Scanner().scan("1E+10 "), 5)
+        self.assertEqual(Scanner().scan("1e+10 "), 5)
+        self.assertEqual(Scanner().scan("1E-10 "), 5)
+        self.assertEqual(Scanner().scan("1e-10 "), 5)
+        self.assertEqual(Scanner().scan("-1.2E10 "), 7)
+        self.assertEqual(Scanner().scan("-1.2e10 "), 7)
+        self.assertEqual(Scanner().scan("-1.2E+10 "), 8)
+        self.assertEqual(Scanner().scan("-1.2e+10 "), 8)
+        self.assertEqual(Scanner().scan("-1.2E-10 "), 8)
+        self.assertEqual(Scanner().scan("-1.2e-10 "), 8)
+        self.assertEqual(Scanner().scan("-1E10 "), 5)
+        self.assertEqual(Scanner().scan("-1e10 "), 5)
+        self.assertEqual(Scanner().scan("-1E+10 "), 6)
+        self.assertEqual(Scanner().scan("-1e+10 "), 6)
+        self.assertEqual(Scanner().scan("-1E-10 "), 6)
+        self.assertEqual(Scanner().scan("-1e-10 "), 6)
+
     def test_scan_trailing_dot(self):
         self.assertIsNone(self.jsonscanner.scan("13."))
         self.assertEqual(self.jsonscanner.pos, 2)
@@ -294,11 +321,30 @@ class TestJSONNumberScanner(unittest.TestCase):
     def test_scan_dot_begin(self):
         self.assertEqual(self.jsonscanner.scan(".1"), 1)
 
+    def test_scan_dot_end(self):
+        self.assertEqual(self.jsonscanner.scan("1337. "), 4)
+
     def test_scan_two_dots(self):
         self.assertEqual(self.jsonscanner.scan("1.2.3"), 3)
 
     def test_scan_minusdot_begin(self):
         self.assertEqual(self.jsonscanner.scan("-.1"), 2)
+
+    def test_scan_scientific_invalids(self):
+        Scanner = JSONNumberScanner
+        self.assertEqual(Scanner().scan("-E10 "), 1)
+        self.assertEqual(Scanner().scan("E10 "), 1)
+        self.assertEqual(Scanner().scan("1e1.0 "), 3)
+        self.assertEqual(Scanner().scan("15e.0 "), 2)
+        self.assertEqual(Scanner().scan("1.2E "), 3)
+        self.assertEqual(Scanner().scan("1.2E+ "), 3)
+        self.assertEqual(Scanner().scan("1.2E- "), 3)
+        self.assertEqual(Scanner().scan("1.2E. "), 3)
+        self.assertEqual(Scanner().scan("1.2E1.5 "), 5)
+        self.assertEqual(Scanner().scan("1.2E2e2 "), 5)
+        self.assertEqual(Scanner().scan("1.2E2X2 "), 5)
+        self.assertEqual(Scanner().scan("1.2Ee "), 3)
+        self.assertEqual(Scanner().scan("1.2EX "), 3)
 
 
 class TestJSONStringScanner(unittest.TestCase):
