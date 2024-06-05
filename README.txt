@@ -45,3 +45,20 @@ Git tags are prefixed with 'v'.
 
 The package's version is automatically deduced from the git tag in the
 "no-guess-dev" mode.
+
+Source origin
+=============
+
+This is built upon a library 'symmetricjsonrpc' that had its last work
+done in 2014 (10 years before this fork).
+
+  https://github.com/niligulmohar/python-symmetric-jsonrpc/
+
+Don't ask me why I added '3' to it, instead of '2', because I haven't
+got a clue. I also wanted to keep the 'symmetric' part because it gives
+off the function of this lib pretty well.
+
+I realize this looks /a bit/ like typo-squatting, but I hope to keep the
+name 'symmetricjsonrpc3' for the time being.
+
+  ~ Robikz, June 2024
