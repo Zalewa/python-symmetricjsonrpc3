@@ -51,9 +51,34 @@ class ClientConnection(dispatcher.Connection):
         return self.reader.read_values()
 
 
-class TimeoutError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+class RPCErrorResponse(dict):
+    def __init__(self, message, code=0, data=None):
+        if isinstance(message, Exception):
+            exc = message
+            if data is None:
+                data = exc
+            message = f"{type(exc).__name__}: {exc}"
+
+        self["message"] = str(message)
+        self["code"] = code
+        if isinstance(data, Exception):
+            self["data"] = {
+                'type': type(data).__name__,
+                'args': [self._argify(arg) for arg in data.args],
+            }
+        elif hasattr(data, '__to_json__'):
+            self["data"] = data.__to_json__()
+        else:
+            self["data"] = data
+
+    @staticmethod
+    def _argify(arg):
+        if isinstance(arg, (int, float, str)):
+            return arg
+        elif hasattr(arg, '__to_json__'):
+            return arg.__to_json__()
+        else:
+            return repr(arg)
 
 
 class RPCClient(ClientConnection):
@@ -67,7 +92,8 @@ class RPCClient(ClientConnection):
 
     The dispatched threads are instances of RPCClient.Dispatch, and
     you must subclass it and override the dispatch_* methods in it to
-    handle incoming data."""
+    handle incoming data.
+    """
 
     class Request(dispatcher.ThreadedClient):
         def dispatch(self, subject):
@@ -77,8 +103,7 @@ class RPCClient(ClientConnection):
                     error = None
                 except Exception as e:
                     result = None
-                    error = {'type': type(e).__name__,
-                             'args': list(e.args)}
+                    error = RPCErrorResponse(e)
                 self.parent.respond(result, error, subject['id'])
             elif 'result' in subject or 'error' in subject:
                 assert 'id' in subject
@@ -124,7 +149,7 @@ class RPCClient(ClientConnection):
         try:
             with self._recv_waiting[request_id]['condition']:
                 self._recv_waiting[request_id]['condition'].wait(timeout)
-                if self._recv_waiting[request_id]['result'] == None:
+                if self._recv_waiting[request_id]['result'] is None:
                     raise TimeoutError("RPC timeout on method '{0}'".format(method))
                 if self._recv_waiting[request_id]['result'].get('error') is not None:
                     exc = Exception(self._recv_waiting[request_id]['result']['error']['message'])
@@ -134,8 +159,13 @@ class RPCClient(ClientConnection):
             del self._recv_waiting[request_id]
 
     def respond(self, result, error, id):
+        response = {'jsonrpc': '2.0', 'id': id}
+        if error is None:
+            response['result'] = result
+        else:
+            response['error'] = error
         with self._send_lock:
-            self.writer.write_value({'result': result, 'error': error, 'id': id})
+            self.writer.write_value(response)
 
     def notify(self, method, params=[]):
         with self._send_lock:

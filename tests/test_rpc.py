@@ -22,7 +22,7 @@ import unittest
 
 from symmetricjsonrpc3 import json
 from symmetricjsonrpc3.rpc import (ClientConnection, RPCClient,
-                                   RPCServer,
+                                   RPCErrorResponse, RPCServer,
                                    dispatcher)
 
 
@@ -89,6 +89,49 @@ def _make_client_socket():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('localhost', 4712))
     return s
+
+
+class TestRPCErrorResponse(unittest.TestCase):
+    def test_init(self):
+        response = RPCErrorResponse("TestMessage", 1337, data=[1, 3, 6])
+        self.assertEqual(response["message"], "TestMessage")
+        self.assertEqual(response["code"], 1337)
+        self.assertEqual(response["data"], [1, 3, 6])
+
+    def test_exception_conversion(self):
+        exception = Exception("I am error.")
+        response = RPCErrorResponse(exception)
+        self.assertEqual(response["message"], "Exception: I am error.")
+        self.assertEqual(response["code"], 0)
+        self.assertEqual(response["data"], {
+            "type": "Exception",
+            "args": ["I am error."]
+        })
+
+    def test_tojson_error_conversion(self):
+        class SomeObj:
+            def __init__(self, ident):
+                self.ident = ident
+
+            def __to_json__(self):
+                return {"SomeObj": self.ident}
+
+            def __repr__(self):
+                return repr(str(self))
+
+            def __str__(self):
+                return f"I am SomeObj {self.ident}."
+
+        exception = Exception(SomeObj("A"), SomeObj("B"))
+        response = RPCErrorResponse(exception)
+
+        self.assertEqual(response["message"],
+                         "Exception: ('I am SomeObj A.', 'I am SomeObj B.')")
+        self.assertEqual(response["code"], 0)
+        self.assertEqual(response["data"], {
+            "type": "Exception",
+            "args": [SomeObj('A').__to_json__(), SomeObj('B').__to_json__()]
+        })
 
 
 class TestRpc(unittest.TestCase):
