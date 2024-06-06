@@ -44,23 +44,23 @@ class WriterWrapper:
     poll_timeout = 1000
     buff_maxsize = 512
 
-    def __new__(cls, f):
+    def __new__(cls, stream):
         if cls is not WriterWrapper:
             return object.__new__(cls)
-        elif hasattr(f, "send"):
-            return SocketWriter(f)
-        elif hasattr(f, "write"):
-            return FileWriter(f)
+        elif hasattr(stream, "send"):
+            return SocketWriter(stream)
+        elif hasattr(stream, "write"):
+            return FileWriter(stream)
         else:
-            return f
+            return stream
 
-    def __init__(self, f):
-        self.f = f
+    def __init__(self, stream):
+        self.stream = stream
         self.buff = None
         self.poll = None
-        if _is_real_file(f):
+        if _is_real_file(stream):
             self.poll = select.poll()
-            self.poll.register(f, select.POLLOUT | select.POLLERR | select.POLLHUP | select.POLLNVAL)
+            self.poll.register(stream, select.POLLOUT | select.POLLERR | select.POLLHUP | select.POLLNVAL)
         self.closed = False
 
     @property
@@ -69,7 +69,7 @@ class WriterWrapper:
 
     def close(self):
         self.closed = True
-        self.f.close()
+        self.stream.close()
 
     def write(self, s):
         if self.buff is None:
@@ -103,13 +103,13 @@ class WriterWrapper:
 
 class FileWriter(WriterWrapper):
     def _write(self, s):
-        self.f.write(s)
+        self.stream.write(s)
         return len(s)
 
 
 class SocketWriter(WriterWrapper):
     def _write(self, s):
-        res = self.f.send(s.encode('ascii'))
+        res = self.stream.send(s.encode('ascii'))
         return res
 
 
@@ -121,28 +121,28 @@ class ReaderWrapper:
     depending on what type of object it wraps."""
     poll_timeout = 1000
 
-    def __new__(cls, f):
+    def __new__(cls, stream):
         def get_cls():
             if cls is not ReaderWrapper:
                 return cls
-            elif isinstance(f, bytes):
+            elif isinstance(stream, bytes):
                 return BytesReader
-            elif isinstance(f, str):
+            elif isinstance(stream, str):
                 return StringReader
-            elif hasattr(f, "recv"):
+            elif hasattr(stream, "recv"):
                 return SocketReader
-            elif hasattr(f, "read"):
+            elif hasattr(stream, "read"):
                 return FileReader
             return None
         cls = get_cls()
-        return super().__new__(cls) if cls is not None else f
+        return super().__new__(cls) if cls is not None else stream
 
-    def __init__(self, f):
-        self.file = f
+    def __init__(self, stream):
+        self.stream = stream
         self.poll = None
-        if _is_real_file(f):
+        if _is_real_file(stream):
             self.poll = select.poll()
-            self.poll.register(f, select.POLLIN | select.POLLPRI | select.POLLERR | select.POLLHUP | select.POLLNVAL)
+            self.poll.register(stream, select.POLLIN | select.POLLPRI | select.POLLERR | select.POLLHUP | select.POLLNVAL)
         self.closed = False
 
     def __iter__(self):
@@ -174,7 +174,7 @@ class ReaderWrapper:
 
     def close(self):
         self.closed = True
-        self.file.close()
+        self.stream.close()
 
     def _wait(self):
         if not self.poll:
@@ -191,7 +191,7 @@ class ReaderWrapper:
 
 class FileReader(ReaderWrapper):
     def _read(self, n):
-        return self.file.read(n)
+        return self.stream.read(n)
 
 
 class BytesReader(FileReader):
@@ -208,7 +208,7 @@ class SocketReader(ReaderWrapper):
     def _read(self, n):
         if n is None or n <= 0:
             n = 1024
-        chunk = self.file.recv(n)
+        chunk = self.stream.recv(n)
         return chunk.decode('ascii') if chunk else ''
 
 
