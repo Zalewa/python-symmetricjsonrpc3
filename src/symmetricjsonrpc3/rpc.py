@@ -98,6 +98,9 @@ class RPCClient(ClientConnection):
     class Request(dispatcher.ThreadedClient):
         def dispatch(self, subject):
             if 'method' in subject and 'id' in subject:
+                self._dbg("%s%s: incoming request (%s:%s)", self.name,
+                          self._remote_address_label(),
+                          subject['id'], subject['method'])
                 try:
                     result = self.dispatch_request(subject)
                     error = None
@@ -106,6 +109,10 @@ class RPCClient(ClientConnection):
                     error = RPCErrorResponse(e)
                 self.parent.respond(result, error, subject['id'])
             elif 'result' in subject or 'error' in subject:
+                self._dbg("%s%s: incoming %s (%s)", self.name,
+                          self._remote_address_label(),
+                          "error" if subject.get("error") else "result",
+                          subject['id'])
                 assert 'id' in subject
                 if subject['id'] in self.parent._recv_waiting:
                     with self.parent._recv_waiting[subject['id']]['condition']:
@@ -114,6 +121,8 @@ class RPCClient(ClientConnection):
                 else:
                     self.dispatch_response(subject)
             elif 'method' in subject:
+                self._dbg("%s%s: incoming notification (%s)", self.name,
+                          self._remote_address_label(), subject['method'])
                 try:
                     self.dispatch_notification(subject)
                 except:

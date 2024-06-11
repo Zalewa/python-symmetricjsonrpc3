@@ -94,6 +94,24 @@ class Thread(threading.Thread):
         if self.debug_thread:
             logger.debug(fmt, *args, **kwargs)
 
+    def _remote_address(self):
+        if self.subject and hasattr(self.subject, "getpeername"):
+            try:
+                return self.subject.getpeername()
+            except OSError:
+                pass
+        return None
+
+    def _remote_address_label(self):
+        addr = self._remote_address()
+        if addr is not None:
+            if len(addr) == 2:
+                return f"({addr[0]}:{addr[1]})"
+            else:
+                return f"({addr})"
+        else:
+            return ""
+
 
 class Connection(Thread):
     """A connection manager thread base class."""
@@ -104,9 +122,11 @@ class Connection(Thread):
 
     def run_thread(self):
         for value in self.read():
-            self._dbg("%s: DISPATCH: %s", self.name, value)
+            self._dbg("%s%s: DISPATCH: %s", self.name,
+                      self._remote_address_label(), value)
             self.dispatch(value)
-            self._dbg("%s: DISPATCH DONE: %s", self.name, value)
+            self._dbg("%s%s: DISPATCH DONE: %s", self.name,
+                      self._remote_address_label(), value)
 
     def read(self):
         pass

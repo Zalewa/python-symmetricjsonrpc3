@@ -91,6 +91,18 @@ def parse_args():
 
 
 args = parse_args()
+
+if g_loglevel > DEBUG[0]:
+    import logging
+    import sys
+    loghandler = logging.StreamHandler(sys.stderr)
+    loghandler.setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().addHandler(loghandler)
+    log(DEBUG, "Extra debugs are enabled.")
+    symmetricjsonrpc3.Thread.debug_thread = True
+    symmetricjsonrpc3.Connection.debug_dispatch = True
+
 if args.ssl:
     # Set up a SSL socket
     import M2Crypto
