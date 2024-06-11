@@ -55,7 +55,7 @@ def parse_args():
 
     argp = argparse.ArgumentParser(
         description=("Ping client example, meant to "
-                     "be used with ping_client.py."))
+                     "be used with ping_server.py."))
     argp.add_argument("-H", "--host", default="localhost",
                       help="host to connect to [%(default)s]")
     argp.add_argument("-p", "--port", default=4712,
