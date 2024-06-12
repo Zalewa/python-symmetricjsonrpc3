@@ -64,7 +64,7 @@ def parse_args():
                      "with ping requests."))
     argp.add_argument("-H", "--host", default="localhost",
                       help="host to connect to [%(default)s]")
-    argp.add_argument("-p", "--port", default=4712,
+    argp.add_argument("-p", "--port", default=4712, type=int,
                       help="port to connect to [%(default)s]")
     argp.add_argument("-q", "--quiet", default=0, action="count",
                       help="decrease verbosity level")

@@ -75,7 +75,7 @@ def parse_args():
                      "be used with ping_client.py."))
     argp.add_argument("-H", "--host", default="localhost",
                       help="hostname to listen on [%(default)s]")
-    argp.add_argument("-p", "--port", default=4712,
+    argp.add_argument("-p", "--port", default=4712, type=int,
                       help="port to listen on [%(default)s]")
     argp.add_argument("-q", "--quiet", default=0, action="count",
                       help="decrease verbosity level")
