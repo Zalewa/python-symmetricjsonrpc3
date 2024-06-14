@@ -41,7 +41,7 @@ class Mode:
     @property
     def read(self):
         """True if mode allows reading."""
-        return any(flag in self.mode in self.mode for flag in "r+")
+        return any(flag in self.mode for flag in "r+")
 
     @property
     def write(self):
