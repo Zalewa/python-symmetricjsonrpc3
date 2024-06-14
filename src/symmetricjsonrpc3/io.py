@@ -35,6 +35,7 @@ logger = getLogger(__name__)
 
 class Mode:
     """Get info from the "mode" text (as in `open(mode=...)`)."""
+
     def __init__(self, mode):
         self.mode = mode
 
@@ -141,7 +142,7 @@ def rwmode(fd):
 def typemode(fd):
     """Get the text/binary mode of a file-descriptor (or a file-like).
 
-    The `fd` can be anything filelike that `makefile()` would also
+    The `fd` can be anything file-like that `makefile()` would also
     accept.
 
     Return 't' for text, 'b' for binary or an empty str if unknown.
@@ -150,7 +151,7 @@ def typemode(fd):
     nor a file-like.
     """
     if isinstance(fd, int):
-        fcntl.fcntl(fd, fcntl.F_GETFD)
+        fcntl.fcntl(fd, fcntl.F_GETFD)  # check if this is really an fd
         return "b"
     elif isinstance(fd, (io.RawIOBase, io.BufferedIOBase, socket.socket)):
         return "b"
@@ -185,7 +186,7 @@ class BytesIOWrapper(io.RawIOBase):
 
 
 def makefile(fd, mode=None, **kwargs):
-    """Wrap anything file-like in a file-like object.
+    """Wrap anything file-like in a file-like object with a common interface.
 
     The `fd` is assumed to be an open file (i.e. not a path).
 
@@ -196,7 +197,8 @@ def makefile(fd, mode=None, **kwargs):
       close() that will actually call socket.close(),
     - looks like a file-like object already,
       - and matches the text/binary mode -- just return it,
-      - and has a different text/binary mode -- wrap it in a codec,
+      - and has a different text/binary mode -- wrap it in a codec
+        (and monkey-patch close()),
     - none of the above -- raise TypeError.
 
     The `mode` is as in `open()`, but it will be tested against the `fd`
@@ -212,12 +214,13 @@ def makefile(fd, mode=None, **kwargs):
     conversion wrapper. The `encoding`, `errors`, et al parameters can
     be embedded in **kwargs.
 
+    Calling close() on the returned wrapper will also close the `fd`.
+
     """
     wrapper = None
     if isinstance(fd, int):
         if mode is None:
-            fd_rwmode = rwmode(fd)
-            mode = fd_rwmode + "b"
+            mode = rwmode(fd) + "b"
         return os.fdopen(fd, mode=mode, **kwargs)
     elif isinstance(fd, io.IOBase):
         fd_rwmode = rwmode(fd)
