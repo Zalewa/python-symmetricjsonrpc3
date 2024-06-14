@@ -323,7 +323,7 @@ class _WriteJob(_IoJob):
         self.data = data
 
     def run(self, fd):
-        self.accept(os.write(fd, self.data))
+        self.accept(fd.write(self.data))
 
 
 class _WriteAtomicJob(_WriteJob):
@@ -337,7 +337,7 @@ class _WriteAtomicJob(_WriteJob):
         data = self.data
         if self._nwritten > 0:
             data = data[self._nwritten:]
-        self._nwritten += os.write(fd, data)
+        self._nwritten += fd.write(data)
         if len(self.data) == self._nwritten:
             self.accept(self._nwritten)
 
@@ -350,7 +350,7 @@ class _ReadJob(_IoJob):
         self.amount = n
 
     def run(self, fd):
-        self.accept(os.read(fd, self.amount))
+        self.accept(fd.read(self.amount))
 
 
 class _IoJobQueue:
@@ -404,23 +404,24 @@ class _IoJobQueue:
 
 
 class SyncIO(threading.Thread):
-    def __init__(self, fd, mode="rw", log=False):
+    def __init__(self, fd, mode="r+b", log=False):
         if log:
             logger.debug("SyncIO(fd=%s,mode=%s)", fd, mode)
         super().__init__(name=f"SyncIO-{fd}")
         self.daemon = True
-        self.fd = fd
+        self.fd = makefile(fd, mode=mode)
         self.log = log
-        os.set_blocking(fd, False)
+        try:
+            os.set_blocking(self.fd.fileno(), False)
+        except io.UnsupportedOperation:
+            # no nonblocking io for us, so we will break later on, I guess D:
+            pass
         self._modeflags = 0
 
-        for c in mode:
-            # 'b' is ignored
-            if c not in "rwb":
-                raise ValueError(f"unknown mode '{c}'")
-        if 'r' in mode:
+        fdmode = Mode(rwmode(fd))
+        if fdmode.read:
             self._modeflags |= selectors.EVENT_READ
-        if 'w' in mode:
+        if fdmode.write:
             self._modeflags |= selectors.EVENT_WRITE
         if self._modeflags == 0:
             raise ValueError("must have a read, write or read/write mode")
@@ -524,7 +525,7 @@ class SyncIO(threading.Thread):
         finally:
             os.close(self._wjob)
             os.close(self._rjob)
-            os.close(self.fd)
+            self.fd.close()
 
     def _log_debug(self, fmt, *args, **kwargs):
         if self.log:

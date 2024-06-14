@@ -25,7 +25,7 @@ import socket
 import tempfile
 import unittest
 
-from symmetricjsonrpc3.io import makefile, rwmode, typemode, Mode
+from symmetricjsonrpc3.io import makefile, rwmode, typemode, Mode, SyncIO
 
 
 class TestMode(unittest.TestCase):
@@ -383,3 +383,41 @@ class TestMakefile(unittest.TestCase):
     def test_not_makeable(self):
         with self.assertRaises(TypeError):
             makefile("/tmp/watermelon")
+
+
+class TestSyncIO(unittest.TestCase):
+    # ** test_openclose_... **
+    # SyncIO is supposed to close the underlying fd when it itself is closed
+    def test_openclose_stringio(self):
+        lower = io.StringIO()
+        upper = SyncIO(lower)
+        upper.close()
+        self.assertTrue(lower.closed)
+
+    def test_openclose_bytesio(self):
+        lower = io.BytesIO()
+        upper = SyncIO(lower)
+        upper.close()
+        self.assertTrue(lower.closed)
+
+    def test_openclose_tempfile(self):
+        lower = tempfile.TemporaryFile()
+        upper = SyncIO(lower)
+        upper.close()
+        self.assertTrue(lower.closed)
+
+    def test_openclose_pipe(self):
+        lower_r, lower_w = os.pipe()
+        os.close(lower_w)
+        upper = SyncIO(lower_r, mode="rb")
+        upper.close()
+        with self.assertRaises(OSError) as error:
+            os.close(lower_r)
+        self.assertEqual(error.exception.errno, errno.EBADF)
+
+    def test_openclose_socket(self):
+        lower = socket.socket()
+        upper = SyncIO(lower)
+        upper.close()
+        # socket's fileno() returns -1 when the socket is closed
+        self.assertEqual(lower.fileno(), -1)
