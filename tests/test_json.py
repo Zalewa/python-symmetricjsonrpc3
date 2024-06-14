@@ -1,3 +1,5 @@
+#!/usr/bin/env pytest
+
 # python-symmetricjsonrpc3
 # Copyright (C) 2009 Egil Moeller <redhog@redhog.org>
 # Copyright (C) 2009 Nicklas Lindgren <nili@gulmohar.se>
