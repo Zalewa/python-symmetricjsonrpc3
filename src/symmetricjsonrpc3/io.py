@@ -64,6 +64,12 @@ class Mode:
         """True if opened in text mode."""
         return self.typemode == 't'
 
+    def __repr__(self):
+        def b(v):
+            return "1" if v else "0"
+        return (f"Mode({self.mode},r={b(self.read)},w={b(self.write)},"
+                f"tm={self.typemode},b={b(self.binary)},tx={b(self.text)})")
+
 
 class _UnknownMode(Mode):
     read = True
@@ -242,10 +248,15 @@ def makefile(fd, mode=None, **kwargs):
                 wrapper = BytesIOWrapper(fd, **kwargs)
     elif isinstance(fd, socket.socket):
         req_mode = Mode(mode or "rwb")
-        sockmode = ("r" if req_mode.read else ""
-                    + "w" if req_mode.write else ""
-                    + "b" if req_mode.binary else "")
+        sockmode = (("r" if req_mode.read else "")
+                    + ("w" if req_mode.write else "")
+                    + ("b" if req_mode.binary else ""))
         wrapper = fd.makefile(mode=sockmode, **kwargs)
+        try:
+            wrapper.fileno()
+        except io.UnsupportedOperation:
+            # monkey-patch BufferedRWPair that yells UnsupportedOperation here
+            wrapper.fileno = lambda: fd.fileno()
     else:
         raise TypeError(f"don't know how to make a file out of {type(fd)}")
 

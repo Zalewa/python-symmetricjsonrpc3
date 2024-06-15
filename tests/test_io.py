@@ -328,6 +328,18 @@ class TestMakefile(unittest.TestCase):
         # socket's fileno() returns -1 when the socket is closed
         self.assertEqual(sock.fileno(), -1)
 
+    def test_socket_default_mode(self):
+        with makefile(socket.socket()) as file:
+            self.assertIsInstance(file, (io.RawIOBase, io.BufferedIOBase))
+
+    def test_socket_binary_mode(self):
+        with makefile(socket.socket(), "r+b") as file:
+            self.assertIsInstance(file, (io.RawIOBase, io.BufferedIOBase))
+
+    def test_socket_text_mode(self):
+        with makefile(socket.socket(), "r+t") as file:
+            self.assertIsInstance(file, io.TextIOBase)
+
     def test_socket_modes(self):
         modes = ["r+", "r+b", "w+", "w+b", "ab", "a+b"]
         sock = socket.socket()
