@@ -48,7 +48,8 @@ class JSONEncoder(json.JSONEncoder):
     """
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("separators", (",", ":"))
+        if kwargs.get("separators") is None:
+            kwargs["separators"] = (",", ":")
         super().__init__(*args, **kwargs)
 
     def default(self, o):
