@@ -272,18 +272,16 @@ def makefile(fd, mode=None, **kwargs):
 
 
 class _Reselector:
-    def __init__(self, selector, parent):
+    def __init__(self, selector, fd, _parentlog=None, log=False):
         self.selector = selector
-        self.parent = parent
+        self.fd = fd
+        self._parentlog = _parentlog
+        self.log = log
         self._oldflags = 0
 
     @property
     def events(self):
         return self._oldflags
-
-    @property
-    def fd(self):
-        return self.parent.fd
 
     def modify(self, flags):
         if flags == self._oldflags:
@@ -302,7 +300,11 @@ class _Reselector:
         self._oldflags = flags
 
     def _log_debug(self, fmt, *args, **kwargs):
-        self.parent._log_debug("Reselector: " + fmt, *args, **kwargs)
+        # that's some twisted logic
+        if self._parentlog:
+            self._parentlog._log_debug("Reselector: " + fmt, *args, **kwargs)
+        elif self.log:
+            logger.debug("Reselector: " + fmt, *args, **kwargs)
 
 
 class _IoJob:
@@ -471,7 +473,8 @@ class SyncIO(threading.Thread):
         else:
             # Let the Reselector take care of this fd from now on.
             self._selector.unregister(self.fd)
-            self._reselector = _Reselector(self._selector, self)
+            self._reselector = _Reselector(self._selector, self.fd,
+                                           _parentlog=self, log=log)
 
         self.start()
 
