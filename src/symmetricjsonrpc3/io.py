@@ -468,7 +468,12 @@ class SyncIO(threading.Thread):
         try:
             self._selector.register(self.fd, selectors.EVENT_READ
                                     | selectors.EVENT_WRITE)
-        except ValueError:
+        except (PermissionError, ValueError):
+            # PermissionError, EPERM, is raised when selecting on the
+            # file is pointless because the file is always ready.
+            #
+            # ValueError is when the file object is not really a file
+            # (pipe, socket, etc.), but a file-like in-memory buffer.
             self._reselector = None
         else:
             # Let the Reselector take care of this fd from now on.
