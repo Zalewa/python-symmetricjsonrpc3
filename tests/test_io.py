@@ -433,3 +433,45 @@ class TestSyncIO(unittest.TestCase):
         upper.close()
         # socket's fileno() returns -1 when the socket is closed
         self.assertEqual(lower.fileno(), -1)
+
+    def test_write_stringio(self):
+        strio = io.StringIO()
+        with SyncIO(strio, "r+") as sio:
+            sio.write("watermelon\n")
+            strio.seek(0)
+            self.assertEqual(strio.read(), "watermelon\n")
+
+    def test_read_stringio(self):
+        strio = io.StringIO("pineapple\n")
+        strio.seek(0)
+        with SyncIO(strio, "r+") as sio:
+            self.assertEqual(sio.read(), "pineapple\n")
+
+    def test_write_bytesio(self):
+        strio = io.BytesIO()
+        with SyncIO(strio, "wb") as sio:
+            sio.write(b"watermelon\n")
+            strio.seek(0)
+            self.assertEqual(strio.read(), b"watermelon\n")
+
+    def test_read_bytesio(self):
+        strio = io.BytesIO(b"pineapple\n")
+        strio.seek(0)
+        with SyncIO(strio, "rb") as sio:
+            self.assertEqual(sio.read(), b"pineapple\n")
+            strio.write(b"watermelon\n")
+            strio.seek(len(b"pineapple\n"))
+            self.assertEqual(sio.read(), b"watermelon\n")
+            # Not getting stuck on an in-memory IO.
+            self.assertEqual(sio.read(), b"")
+
+    def test_write_socketpair(self):
+        sock1, sock2 = socket.socketpair()
+        sock2.settimeout(0.1)  # ideally this should be 0
+        with SyncIO(sock1, "r+b") as sio:
+            sio.write(b"watermelon\n")
+            sio.flush()
+            self.assertEqual(sock2.recv(1024), b"watermelon\n")
+            sio.write(b"pineapple\n")
+            sio.flush()
+            self.assertEqual(sock2.recv(1024), b"pineapple\n")

@@ -329,6 +329,17 @@ class _IoJob:
         self.complete.set()
 
 
+class _ImmediateJob(_IoJob):
+    pass
+
+
+class _FlushJob(_ImmediateJob):
+    name = "flush"
+
+    def run(self, fd):
+        self.accept(fd.flush())
+
+
 class _WriteJob(_IoJob):
     name = "write"
 
@@ -428,7 +439,8 @@ class SyncIO(threading.Thread):
         try:
             os.set_blocking(self.fd.fileno(), False)
         except io.UnsupportedOperation:
-            # no nonblocking io for us, so we will break later on, I guess D:
+            # Not a real file, so I guess it's nonblocking by default (?).
+            # We won't be able to select on it either.
             pass
         self._modeflags = 0
 
@@ -448,19 +460,39 @@ class SyncIO(threading.Thread):
 
         self._selector = selectors.DefaultSelector()
         self._selector.register(self._rjob, selectors.EVENT_READ)
-        self._reselector = _Reselector(self._selector, self)
+
+        # We will be selecting on the fd, but only if it can be selected on.
+        # If not, we'll assume it's always ready for IO.
+        try:
+            self._selector.register(self.fd, selectors.EVENT_READ
+                                    | selectors.EVENT_WRITE)
+        except ValueError:
+            self._reselector = None
+        else:
+            # Let the Reselector take care of this fd from now on.
+            self._selector.unregister(self.fd)
+            self._reselector = _Reselector(self._selector, self)
 
         self.start()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.close()
 
     def write(self, data):
         if not (self._modeflags & selectors.EVENT_WRITE):
             raise io.UnsupportedOperation('not writable')
         return self._run_job(_WriteAtomicJob(data))
 
-    def read(self, n):
+    def read(self, n=None):
         if not (self._modeflags & selectors.EVENT_READ):
             raise io.UnsupportedOperation('not readable')
         return self._run_job(_ReadJob(n))
+
+    def flush(self):
+        return self._run_job(_FlushJob())
 
     def _run_job(self, job):
         with self._close_lock:
@@ -483,13 +515,18 @@ class SyncIO(threading.Thread):
         iojobs = _IoJobQueue()
         try:
             while not self._closed:
-                self._log_debug("-> selecting (%s) ... <-", self._reselector.events)
+                self._log_debug(
+                    "-> selecting (%s) ... <-",
+                    f"{self.fd.fileno()},{self._reselector.events}" if self._reselector else "RAM")
                 events = self._selector.select()
                 rlist = [event.fd for event, mask in events
                          if mask & selectors.EVENT_READ]
                 wlist = [event.fd for event, mask in events
                          if mask & selectors.EVENT_WRITE]
-                self._log_debug("spin r=%s w=%s", rlist, wlist)
+                self._log_debug("select r=%s w=%s; jobs r=%s w=%s",
+                                rlist, wlist,
+                                len(iojobs.read_jobs),
+                                len(iojobs.write_jobs))
 
                 if self._rjob in rlist:
                     signal = os.read(self._rjob, 1)
@@ -497,24 +534,31 @@ class SyncIO(threading.Thread):
                         self._closed = True
                     elif signal == b'j':
                         job = self._queue.get()
-                        self._log_debug("enqueueing %s job from %s",
-                                        job.name, job.source)
-                        iojobs.enqueue(job)
+                        if isinstance(job, _ImmediateJob):
+                            self._log_debug("immediate %s job from %s",
+                                            job.name, job.source)
+                            job.run(self.fd)
+                        else:
+                            self._log_debug("enqueueing %s job from %s",
+                                            job.name, job.source)
+                            iojobs.enqueue(job)
                     else:
                         raise TypeError(f"unknown job signal '{signal}'")
 
-                selectorflags = (self._modeflags &
-                                 ((selectors.EVENT_WRITE if iojobs.write_jobs else 0) |
-                                  (selectors.EVENT_READ if iojobs.read_jobs else 0)
-                                  )
-                                 )
-
-                self._reselector.modify(selectorflags)
+                if self._reselector:
+                    fd_ready = ((selectors.EVENT_WRITE if self.fd.fileno() in wlist else 0)
+                                | (selectors.EVENT_READ if self.fd.fileno() in rlist else 0))
+                    selectorflags = self._modeflags & \
+                        ((selectors.EVENT_WRITE if iojobs.write_jobs else 0)
+                         | (selectors.EVENT_READ if iojobs.read_jobs else 0))
+                    self._reselector.modify(selectorflags)
+                else:
+                    fd_ready = selectors.EVENT_WRITE | selectors.EVENT_READ
 
                 joblist = None
-                if iojobs.read_jobs and self.fd in rlist:
+                if iojobs.read_jobs and (fd_ready & selectors.EVENT_READ):
                     joblist = iojobs.read_jobs
-                elif iojobs.write_jobs and self.fd in wlist:
+                elif iojobs.write_jobs and (fd_ready & selectors.EVENT_WRITE):
                     joblist = iojobs.write_jobs
                 if joblist:
                     job = joblist[0]
