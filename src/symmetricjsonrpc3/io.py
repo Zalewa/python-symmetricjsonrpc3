@@ -204,9 +204,6 @@ class SocketFile(io.RawIOBase):
     def __exit__(self, *args):
         self.close()
 
-    # def read(self, n=None):
-    #     return self._socket.recv(n or 1024)
-
     def write(self, data):
         if self._closed:
             raise ValueError("I/O operation on a closed socket")
