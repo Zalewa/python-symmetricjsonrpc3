@@ -110,8 +110,8 @@ class TestJson(unittest.TestCase):
     def test_broken_socket(self):
         sockets = socket.socketpair()
         reader = Reader(sockets[0])
-        sockets[0].close()
-        self.assertRaises(socket.error, lambda: reader.read_value())
+        sockets[1].close()
+        self.assertRaises(EOFError, reader.read_value)
 
     def test_eof(self):
         obj = {'foo': 1, 'bar': [1, 2]}

@@ -475,3 +475,9 @@ class TestSyncIO(unittest.TestCase):
             sio.write(b"pineapple\n")
             sio.flush()
             self.assertEqual(sock2.recv(1024), b"pineapple\n")
+
+    def test_broken_socket(self):
+        sock1, sock2 = socket.socketpair()
+        with SyncIO(sock1, "rb") as reader:
+            sock2.close()
+            self.assertRaises(EOFError, reader.read)

@@ -377,7 +377,10 @@ class _ReadJob(_IoJob):
         self.amount = n
 
     def run(self, fd):
-        self.accept(fd.read(self.amount))
+        chunk = fd.read(self.amount)
+        if not chunk and not fd.seekable():
+            raise EOFError
+        self.accept(chunk)
 
 
 class _IoJobQueue:
@@ -573,7 +576,7 @@ class SyncIO(threading.Thread):
                     self._log_debug("running %s job from %s", job.name, job.source)
                     try:
                         job.run(self.fd)
-                    except OSError as e:
+                    except (OSError, EOFError) as e:
                         job.reject(e)
                         raise
                     if job.complete.is_set():
@@ -587,7 +590,8 @@ class SyncIO(threading.Thread):
                 self._closed = True
                 iojobs.enqueue_all(self._queue)
             iojobs.reject_all(e)
-            raise
+            if not isinstance(e, (OSError, EOFError)):
+                raise
         finally:
             os.close(self._wjob)
             os.close(self._rjob)
