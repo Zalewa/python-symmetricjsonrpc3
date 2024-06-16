@@ -351,6 +351,25 @@ class TestMakefile(unittest.TestCase):
         finally:
             sock.close()
 
+    def test_socketpair_io_binary_read(self):
+        s1, s2 = socket.socketpair()
+        try:
+            with makefile(s2, "rb") as sf2:
+                s1.send(b'watermelon\n')
+                self.assertEqual(sf2.read(1024), b'watermelon\n')
+        finally:
+            s1.close()
+
+    def test_socketpair_io_binary_write(self):
+        s1, s2 = socket.socketpair()
+        try:
+            with makefile(s2, "wb") as sf2:
+                sf2.write(b'pineapple\n')
+                sf2.flush()
+                self.assertEqual(s1.recv(1024), b'pineapple\n')
+        finally:
+            s1.close()
+
     def test_tempfile(self):
         file = tempfile.TemporaryFile()
         try:

@@ -191,6 +191,60 @@ class BytesIOWrapper(io.RawIOBase):
         return len(buf) if nwritten == len(text) else len(text[:nwritten].encode())
 
 
+class SocketFile(io.RawIOBase):
+    def __init__(self, sock, mode="r+b", encoding=None, errors="strict"):
+        self._socket = sock
+        self.mode = mode
+        self._mode = Mode(mode)
+        self._closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    # def read(self, n=None):
+    #     return self._socket.recv(n or 1024)
+
+    def write(self, data):
+        if self._closed:
+            raise ValueError("I/O operation on a closed socket")
+        return self._socket.send(data)
+
+    def flush(self):
+        pass
+
+    def readinto(self, buffer):
+        if self._closed:
+            raise ValueError("I/O operation on a closed socket")
+        data = self._socket.recv(len(buffer))
+        n = len(data)
+        buffer[:n] = data
+        return n
+
+    def close(self):
+        if not self._closed:
+            self._socket.close()
+            self._closed = True
+
+    def fileno(self):
+        return self._socket.fileno()
+
+    def readable(self):
+        return self._mode.read
+
+    def writable(self):
+        return self._mode.write
+
+    def isatty(self):
+        return False
+
+    @property
+    def closed(self):
+        return self._closed
+
+
 def makefile(fd, mode=None, **kwargs):
     """Wrap anything file-like in a file-like object with a common interface.
 
@@ -246,28 +300,25 @@ def makefile(fd, mode=None, **kwargs):
             else:
                 # text fd to binary wrapper
                 wrapper = BytesIOWrapper(fd, **kwargs)
+
+            # Monkey-patch the wrapper's close function so that
+            # closing the wrapper also closes the underlying file.
+            original_close = wrapper.close
+
+            def monkey_close(*args, **kwargs):
+                original_close(*args, **kwargs)
+                fd.close()
+            wrapper.close = monkey_close
     elif isinstance(fd, socket.socket):
-        req_mode = Mode(mode or "rwb")
-        sockmode = (("r" if req_mode.read else "")
-                    + ("w" if req_mode.write else "")
-                    + ("b" if req_mode.binary else ""))
-        wrapper = fd.makefile(mode=sockmode, **kwargs)
-        try:
-            wrapper.fileno()
-        except io.UnsupportedOperation:
-            # monkey-patch BufferedRWPair that yells UnsupportedOperation here
-            wrapper.fileno = lambda: fd.fileno()
+        if mode is None:
+            mode = "r+b"
+        req_mode = Mode(mode)
+        wrapper = SocketFile(fd, mode, **kwargs)
+        if req_mode.text:
+            wrapper = io.TextIOWrapper(wrapper, **kwargs, write_through=True)
     else:
         raise TypeError(f"don't know how to make a file out of {type(fd)}")
 
-    # Monkey-patch the wrapper's close function so that
-    # closing the wrapper also closes the underlying file.
-    original_close = wrapper.close
-
-    def monkey_close(*args, **kwargs):
-        original_close(*args, **kwargs)
-        fd.close()
-    wrapper.close = monkey_close
     return wrapper
 
 
@@ -497,7 +548,7 @@ class SyncIO(threading.Thread):
             raise io.UnsupportedOperation('not writable')
         return self._run_job(_WriteAtomicJob(data))
 
-    def read(self, n=None):
+    def read(self, n=-1):
         if not (self._modeflags & selectors.EVENT_READ):
             raise io.UnsupportedOperation('not readable')
         return self._run_job(_ReadJob(n))
