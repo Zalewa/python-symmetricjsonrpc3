@@ -22,6 +22,7 @@
 
 """JSON (de)serialization facilities."""
 import json
+import selectors
 from abc import ABC, abstractmethod
 
 from .io import Closable
@@ -106,8 +107,15 @@ class Reader(Closable):
 
     def __init__(self, s):
         self.s = s
+        try:
+            self._selector = selectors.DefaultSelector()
+            self._selector.register(self.s, selectors.EVENT_READ)
+        except ValueError:
+            # not a real file
+            self._selector = None
         self._eof = None
         self._decoder = JSONDecoderBuffer()
+        self._closed = False
 
     def read_value(self):
         if self._decoder.has_decoded():
@@ -116,7 +124,16 @@ class Reader(Closable):
             raise self._eof
 
         while not self._eof:
-            chunk = self.s.read(4096)
+            if self._selector:
+                events = self._selector.select(timeout=0.1)
+            else:
+                events = True
+            if self._closed:
+                chunk = None
+            elif events:
+                chunk = self.s.read(4096)
+            else:
+                continue
             if chunk:
                 if self._decoder.eat(chunk):
                     return self._decoder.pop()
@@ -135,6 +152,9 @@ class Reader(Closable):
                 yield self.read_value()
         except EOFError:
             return
+
+    def close(self):
+        self._closed = True
 
 
 class JSONScanner(ABC):

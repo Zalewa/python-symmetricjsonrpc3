@@ -52,6 +52,9 @@ class ClientConnection(dispatcher.Connection):
     def read(self):
         return self.reader.read_values()
 
+    def on_shutdown(self):
+        self.subject.close()
+
 
 class RPCErrorResponse(dict):
     def __init__(self, message, code=0, data=None):
