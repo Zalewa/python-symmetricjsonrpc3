@@ -114,7 +114,7 @@ class Reader:
             raise self._eof
 
         while not self._eof:
-            chunk = self.s.read()
+            chunk = self.s.read(4096)
             if chunk:
                 if self._decoder.eat(chunk):
                     return self._decoder.pop()

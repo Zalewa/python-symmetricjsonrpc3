@@ -191,6 +191,21 @@ class BytesIOWrapper(io.RawIOBase):
         return len(buf) if nwritten == len(text) else len(text[:nwritten].encode())
 
 
+class ImmediateTextIOWrapper(io.TextIOWrapper):
+    def __init__(self, buffer, encoding=None, errors=None, *args, **kwargs):
+        kwargs["write_through"] = True
+        super().__init__(buffer, encoding, errors, *args, **kwargs)
+
+    def read(self, size=-1):
+        self._checkReadable()
+        chunk = self.buffer.read(size)
+        return chunk.decode(self.encoding, self.errors)
+
+    def __repr__(self):
+        return (f"<symmetricjsonrpc3.io.ImmediateTextIOWrapper "
+                f"encoding={self.encoding} buffer={self.buffer}>")
+
+
 class SocketFile(io.RawIOBase):
     def __init__(self, sock, mode="r+b", encoding=None, errors="strict"):
         self._socket = sock
@@ -312,7 +327,7 @@ def makefile(fd, mode=None, **kwargs):
         req_mode = Mode(mode)
         wrapper = SocketFile(fd, mode, **kwargs)
         if req_mode.text:
-            wrapper = io.TextIOWrapper(wrapper, **kwargs, write_through=True)
+            wrapper = ImmediateTextIOWrapper(wrapper, **kwargs, write_through=True)
     else:
         raise TypeError(f"don't know how to make a file out of {type(fd)}")
 
