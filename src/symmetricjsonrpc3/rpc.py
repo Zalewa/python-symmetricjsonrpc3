@@ -28,6 +28,7 @@ from logging import getLogger
 
 from . import dispatcher
 from . import json
+from .io import makefile
 
 
 logger = getLogger(__name__)
@@ -38,6 +39,7 @@ class ClientConnection(dispatcher.Connection):
     reads and dispatches JSON values."""
 
     def _init(self, subject, parent=None, *arg, **kw):
+        subject = makefile(subject, "rw")
         self.reader = json.Reader(subject)
         self.writer = json.Writer(subject)
         dispatcher.Connection._init(self, subject=subject, parent=parent, *arg, **kw)

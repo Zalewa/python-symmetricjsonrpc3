@@ -33,6 +33,24 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
+class Closable:
+    """A context-manager that calls close() on exit.
+
+    The close() does nothing by default; it's up to the
+    inheritor to implement it.
+    """
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def close(self):
+        """Do nothing by default."""
+        pass
+
+
 class Mode:
     """Get info from the "mode" text (as in `open(mode=...)`)."""
 
@@ -327,7 +345,7 @@ def makefile(fd, mode=None, **kwargs):
         req_mode = Mode(mode)
         wrapper = SocketFile(fd, mode, **kwargs)
         if req_mode.text:
-            wrapper = ImmediateTextIOWrapper(wrapper, **kwargs, write_through=True)
+            wrapper = ImmediateTextIOWrapper(wrapper, **kwargs)
     else:
         raise TypeError(f"don't know how to make a file out of {type(fd)}")
 
@@ -496,7 +514,7 @@ class _IoJobQueue:
         return len(self.read_jobs) + len(self.write_jobs)
 
 
-class SyncIO(threading.Thread):
+class SyncIO(threading.Thread, Closable):
     def __init__(self, fd, mode="r+b", log=False):
         if log:
             logger.debug("SyncIO(fd=%s,mode=%s)", fd, mode)
@@ -548,12 +566,6 @@ class SyncIO(threading.Thread):
                                            _parentlog=self, log=log)
 
         self.start()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        self.close()
 
     def write(self, data):
         if not (self._modeflags & selectors.EVENT_WRITE):

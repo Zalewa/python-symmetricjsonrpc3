@@ -24,7 +24,7 @@
 import json
 from abc import ABC, abstractmethod
 
-from . import wrappers
+from .io import Closable
 
 
 def from_json(str):
@@ -58,9 +58,10 @@ class JSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-class Writer:
-    """A serializer for Python values to JSON. Allowed types for
-    values to serialize are:
+class Writer(Closable):
+    """A serializer for Python values to JSON.
+
+    Allowed types for values to serialize are:
 
         * None
         * True
@@ -73,39 +74,40 @@ class Writer:
         * dict (keys must be str)
         * any object with a __to_json__ method
 
-    The writer must be instantiated with a file-like object to write
+    The Writer must be instantiated with a file-like object to write
     the serialized JSON to as sole argument. To actually serialize
-    data, call the write_value() or write_values() methods."""
+    data, call the write_value() method.
 
-    def __init__(self, s, encoding=None):
-        self.encoding = encoding
-        self.s = wrappers.WriterWrapper(s)
+    No assumptions are made over the file-like, and while the Writer
+    itself can be close()-d, it doesn't close the file-like.
+    """
 
-    def close(self):
-        self.s.close()
+    def __init__(self, s):
+        self.s = s
 
     def write_value(self, value):
         json.dump(value, self.s, cls=JSONEncoder)
         self.s.flush()
 
 
-class Reader:
-    """A JSON parser that parses JSON strings read from a file-like
-    object or character iterator (for example a string) into Python
-    values.
+class Reader(Closable):
+    """A JSON parser that parses JSON strings read from a file-like.
 
-    The parser must be instantiated with the file-like object or
-    string as its sole argument. To actually parse any values, call
-    either the read_value() method, or iterate over the return value
-    of the read_values() method."""
+    JSON is parsed into Python values. The file-like may provide
+    multiple documents as long as they appear one after another.
+
+    The parser must be instantiated with the file-like object. To parse
+    values, call either the read_value() method, or iterate over the
+    return value of the read_values() method.
+
+    No assumptions are made over the file-like, and while the Reader
+    itself can be close()-d, it doesn't close the file-like.
+    """
 
     def __init__(self, s):
-        self.s = wrappers.ReaderWrapper(s)
+        self.s = s
         self._eof = None
         self._decoder = JSONDecoderBuffer()
-
-    def close(self):
-        self.s.close()
 
     def read_value(self):
         if self._decoder.has_decoded():

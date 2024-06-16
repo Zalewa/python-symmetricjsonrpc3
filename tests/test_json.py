@@ -17,6 +17,7 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
+import io
 import json
 import socket
 import tempfile
@@ -30,17 +31,24 @@ from symmetricjsonrpc3.json import Reader, Writer, from_json, to_json, \
 
 
 class TestJson(unittest.TestCase):
+
     def assertReadEqual(self, str, obj):
-        reader = Reader(str)
-        read_obj = reader.read_value()
+        with io.StringIO(str) as in_strio:
+            with Reader(in_strio) as reader:
+                read_obj = reader.read_value()
+
         self.assertEqual(obj, read_obj)
-        with tempfile.TemporaryFile("w+") as io:
-            Writer(io).write_value(obj)
-            io.flush()
-            io.seek(0)
-            reader1 = Reader(io)
-            read_obj1 = reader1.read_value()
-            self.assertEqual(obj, read_obj1)
+
+        with io.StringIO() as out_strio:
+            with Writer(out_strio) as writer:
+                writer.write_value(obj)
+
+            out_strio.flush()
+            out_strio.seek(0)
+
+            with Reader(out_strio) as reader_redux:
+                read_obj_redux = reader_redux.read_value()
+            self.assertEqual(obj, read_obj_redux)
 
     def assertWriteEqual(self, str, obj):
         self.assertEqual(str, to_json(obj))
@@ -97,21 +105,22 @@ class TestJson(unittest.TestCase):
         self.assertReadEqual(STR, json.loads(STR))
 
     def test_read_values(self):
-        STR = "{}[]true false null"
-        reader = Reader(STR)
         values = [{}, [], True, False, None]
-
-        for i, r in enumerate(reader.read_values()):
-            self.assertEqual(r, values[i])
+        STR = "{}[]true false null"
+        with io.StringIO(STR) as strio:
+            with Reader(strio) as reader:
+                for i, r in enumerate(reader.read_values()):
+                    self.assertEqual(r, values[i])
 
     def test_encode_invalid_object(self):
         self.assertRaises(TypeError, lambda: to_json(object))
 
     def test_broken_socket(self):
         sockets = socket.socketpair()
-        reader = Reader(sockets[0])
+        reader = Reader(_SocketReader(sockets[0]))
         sockets[1].close()
         self.assertRaises(EOFError, reader.read_value)
+        sockets[0].close()
 
     def test_eof(self):
         obj = {'foo': 1, 'bar': [1, 2]}
@@ -139,7 +148,7 @@ class TestJson(unittest.TestCase):
                                                (full_json_string[:10], True),
                                                ('', True)]:
                     sockets = socket.socketpair()
-                    reader = Reader(sockets[0])
+                    reader = Reader(_SocketReader(sockets[0]))
 
                     for c in json_string:
                         while not sockets[1].send(c.encode('ascii')):
@@ -597,3 +606,14 @@ class TestJSONDecoderBuffer(unittest.TestCase):
     def test_flush_unfinished_object(self):
         self.jsondecoder.eat("{")
         self.assertRaises(json.JSONDecodeError, self.jsondecoder.flush)
+
+
+class _SocketReader:
+    def __init__(self, sock):
+        self.s = sock
+
+    def fileno(self):
+        return self.s.fileno()
+
+    def read(self, n=1024):
+        return self.s.recv(1024).decode('ascii')

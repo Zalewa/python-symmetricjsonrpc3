@@ -80,6 +80,7 @@ class Thread(threading.Thread):
                   threading.current_thread().name, self.name)
         for child in list(self.children):
             child.shutdown()
+        self.subject.close()
         self._shutdown = True
         self._dbg("%s: shutdown done: %s",
                   threading.current_thread().name, self.name)
