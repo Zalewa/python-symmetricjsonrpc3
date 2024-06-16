@@ -30,22 +30,6 @@ This library implements the full specification of JSON-RPC 2.0 over sockets.
 
 For usage details, look at the examples in the "examples" directory.
 
-Conventions
-===========
-
-The conventions apply only after the point of forking from the original
-repository.
-
-This project adheres to:
-
-- Conventional Commits 1.0.0 (https://www.conventionalcommits.org/)
-- PyPA version scheme (https://packaging.python.org/en/latest/specifications/version-specifiers/)
-
-Git tags are prefixed with 'v'.
-
-The package's version is automatically deduced from the git tag in the
-"no-guess-dev" mode.
-
 Source origin
 =============
 
