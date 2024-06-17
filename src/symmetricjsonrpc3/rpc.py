@@ -111,11 +111,11 @@ class RPCClient(ClientConnection):
                     error = RPCErrorResponse(e)
                 self.parent.respond(result, error, subject['id'])
             elif 'result' in subject or 'error' in subject:
+                # TODO implement a proper error handling instead of this assert
+                assert 'id' in subject
                 self._dbg("incoming %s (%s)",
                           "error" if subject.get("error") else "result",
                           subject['id'])
-                # TODO implement a proper error handling instead of this assert
-                assert 'id' in subject
 
                 recvwait = None
                 with self.parent._recvwait_lock:
@@ -159,7 +159,12 @@ class RPCClient(ClientConnection):
             with self._recvwait_lock:
                 self._recv_waiting[request_id] = recvwait
         with self._send_lock:
-            self.writer.write_value({'jsonrpc': '2.0', 'method': method, 'params': params, 'id': request_id})
+            self.writer.write_value({
+                'jsonrpc': '2.0',
+                'method': method,
+                'params': params,
+                'id': request_id
+            })
 
         if not wait_for_response:
             return request_id
@@ -169,12 +174,14 @@ class RPCClient(ClientConnection):
     def _wait_for(self, recvwait, request_id, timeout, method):
         try:
             with recvwait['condition']:
-                recvwait['condition'].wait(timeout)
-                if recvwait['result'] is None:
-                    raise TimeoutError("RPC timeout on method '{0}'".format(method))
+                if not recvwait['result']:
+                    recvwait['condition'].wait(timeout)
+                if not recvwait['result']:
+                    raise TimeoutError(f"RPC timeout on request {request_id}"
+                                       f" method '{method}'")
                 if recvwait['result'].get('error') is not None:
                     # TODO a more specific exception type
-                    raise Exception(recvwait['result']['error']['message'])
+                    raise Exception(recvwait['result']['error'].get('message'))
                 return recvwait['result']['result']
         finally:
             with self._recvwait_lock:
