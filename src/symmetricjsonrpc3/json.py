@@ -59,6 +59,28 @@ class JSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
+class _BufferedWriter:
+    MAXLEN = 8192
+
+    def __init__(self, s):
+        self.s = s
+        self.buffer = ''
+
+    def write(self, data):
+        self.buffer += data
+        if len(self.buffer) > self.MAXLEN:
+            self.flush()
+
+    def flush(self):
+        while self.buffer:
+            nwritten = self.s.write(self.buffer)
+            self.s.flush()
+            if nwritten == len(self.buffer):
+                self.buffer = ""
+            else:
+                self.buffer = self.buffer[nwritten:]
+
+
 class Writer(Closable):
     """A serializer for Python values to JSON.
 
@@ -87,8 +109,9 @@ class Writer(Closable):
         self.s = s
 
     def write_value(self, value):
-        json.dump(value, self.s, cls=JSONEncoder)
-        self.s.flush()
+        writebuffer = _BufferedWriter(self.s)
+        json.dump(value, writebuffer, cls=JSONEncoder)
+        writebuffer.flush()
 
 
 class Reader(Closable):
