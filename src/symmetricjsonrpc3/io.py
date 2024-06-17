@@ -620,6 +620,7 @@ class SyncIO(threading.Thread, Closable):
                 if self._rjob in rlist:
                     signal = os.read(self._rjob, 1)
                     if signal == b'q':
+                        self._log_debug("got quit job")
                         self._closed = True
                     elif signal == b'j':
                         job = self._queue.get()
