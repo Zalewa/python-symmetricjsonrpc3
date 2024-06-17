@@ -501,12 +501,12 @@ class _ReadJob(_IoJob):
 
     name = "read"
 
-    def __init__(self, n):
+    def __init__(self, size):
         super().__init__()
-        self.amount = n
+        self.size = size
 
     def run(self, fd):
-        chunk = fd.read(self.amount)
+        chunk = fd.read(self.size)
         if not chunk and not fd.seekable():
             raise EOFError
         self.accept(chunk)
