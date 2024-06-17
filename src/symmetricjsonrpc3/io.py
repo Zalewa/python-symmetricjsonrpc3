@@ -578,6 +578,7 @@ class SyncIO(threading.Thread, Closable):
         self.daemon = True
         self.fd = makefile(fd, mode=mode)
         self.log = log
+        self._log_debug("fd opened: %s", self.fd)
         try:
             os.set_blocking(self.fd.fileno(), False)
         except io.UnsupportedOperation:
@@ -726,4 +727,14 @@ class SyncIO(threading.Thread, Closable):
 
     def _log_debug(self, fmt, *args, **kwargs):
         if self.log:
-            logger.debug("SyncIO(%s): " + fmt, self.fd, *args, **kwargs)
+            logger.debug("SyncIO(%s): " + fmt, self._fdname, *args, **kwargs)
+
+    @property
+    def _fdname(self):
+        try:
+            return str(self.fd.fileno())
+        except Exception:
+            try:
+                return str(self.fd)
+            except Exception:
+                return hex(id(self))
