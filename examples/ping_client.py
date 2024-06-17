@@ -24,6 +24,8 @@ from time import perf_counter
 
 import symmetricjsonrpc3
 
+
+logger = None
 g_loglevel = 0
 
 ERROR = (-2, "E")
@@ -34,7 +36,11 @@ DEBUG = (1, "D")
 
 def log(level, *args, **kwargs):
     if g_loglevel >= level[0]:
-        print(f"{level[1]}:", *args, **kwargs)
+        if logger:
+            fmt = " ".join(str(arg) for arg in args)
+            logger.debug("%s: " + fmt, level[1])
+        else:
+            print(f"{level[1]}:", *args, **kwargs)
 
 
 class PingRPCClient(symmetricjsonrpc3.RPCClient):
@@ -65,6 +71,8 @@ def parse_args():
                       help="decrease verbosity level")
     argp.add_argument("-v", "--verbose", default=0, action="count",
                       help="increase verbosity level")
+    argp.add_argument("-T", "--timestamps", action="store_true",
+                      help="enable timestamps")
     argp.add_argument("--ssl", action="store_true", help=(
         "Encrypt communication with SSL using M2Crypto. "
         "Requires a server.pem in the current directory."))
@@ -75,6 +83,22 @@ def parse_args():
 
 
 args = parse_args()
+
+# Extra-verbose logging
+if g_loglevel > DEBUG[0] or args.timestamps:
+    import logging
+    import sys
+    formatter = logging.Formatter("%(asctime)s: %(message)s")
+    loghandler = logging.StreamHandler(sys.stderr)
+    loghandler.setFormatter(formatter)
+    loghandler.setLevel(logging.DEBUG)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(loghandler)
+    log(DEBUG, "Extra debugs are enabled.")
+    if g_loglevel > DEBUG[0]:
+        symmetricjsonrpc3.Thread.debug_thread = True
+        symmetricjsonrpc3.Connection.debug_dispatch = True
 
 if args.ssl:
     # Set up an SSL connection
