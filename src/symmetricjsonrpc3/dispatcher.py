@@ -127,16 +127,12 @@ class Connection(Thread):
             self.dispatch(value)
             self._dbg("%s%s: DISPATCH DONE: %s", self.name,
                       self._remote_address_label(), value)
-        self.on_shutdown()
 
     def read(self):
         pass
 
     def dispatch(self, subject):
         getattr(self, self._dispatcher_class)(parent=self, subject=subject)
-
-    def on_shutdown(self):
-        pass
 
     def _dbg(self, fmt, *args, **kwargs):
         if self.debug_dispatch:

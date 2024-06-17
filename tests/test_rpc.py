@@ -139,17 +139,21 @@ class TestRPCErrorResponse(unittest.TestCase):
 class TestRpc(unittest.TestCase):
     def test_client(self):
         s1, s2 = socket.socketpair()
-        with s1, s2:
+        try:
             _EchoClient(s2)
+        except Exception:
+            s1.close()
+            s2.close()
+            raise
 
-            with SocketFile(s1) as s1:
-                reader = json.Reader(s1)
-                writer = json.Writer(s1)
+        with SocketFile(s1) as s1:
+            reader = json.Reader(s1)
+            writer = json.Writer(s1)
 
-                obj = {'foo': 1, 'bar': [1, 2]}
-                writer.write_value(obj)
-                return_obj = reader.read_value()
-            self.assertEqual(obj, return_obj)
+            obj = {'foo': 1, 'bar': [1, 2]}
+            writer.write_value(obj)
+            return_obj = reader.read_value()
+        self.assertEqual(obj, return_obj)
 
     def test_return_on_closed_socket(self):
         server_socket = _make_server_socket()
