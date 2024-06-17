@@ -110,7 +110,7 @@ class Reader(Closable):
         try:
             self._selector = selectors.DefaultSelector()
             self._selector.register(self.s, selectors.EVENT_READ)
-        except ValueError:
+        except (PermissionError, ValueError):
             # not a real file
             self._selector = None
         self._eof = None
