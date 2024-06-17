@@ -274,6 +274,9 @@ class SocketFile(io.RawIOBase):
     def closed(self):
         return self._closed
 
+    def __repr__(self):
+        return f"<symmetricjsonrpc3.io.SocketFile{self._socket}>"
+
 
 def makefile(fd, mode=None, **kwargs):
     """Wrap anything file-like in a file-like object with a common interface.
