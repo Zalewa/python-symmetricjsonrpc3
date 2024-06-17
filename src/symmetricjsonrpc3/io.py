@@ -485,6 +485,12 @@ class _FlushJob(_WriteJob):
 
     name = "flush"
 
+    def reject(self, error):
+        if isinstance(error, EOFError):
+            self.accept(None)
+        else:
+            super().reject(error)
+
     def run(self, fd):
         self.accept(fd.flush())
 
