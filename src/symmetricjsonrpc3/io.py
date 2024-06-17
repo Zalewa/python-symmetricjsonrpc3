@@ -271,6 +271,9 @@ class SocketFile(io.RawIOBase):
     def isatty(self):
         return False
 
+    def getpeername(self):
+        return self._socket.getpeername()
+
     @property
     def closed(self):
         return self._closed

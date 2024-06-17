@@ -67,22 +67,20 @@ class Thread(threading.Thread):
             self.parent.children.remove(self)
 
     def run(self, *arg, **kw):
-        self._dbg("%s: BEGIN", self.name)
+        self._dbg("BEGIN")
         self.run_thread(*arg, **kw)
         if self.debug_thread:  # perf check -- avoid the unnecessary join loop
-            self._dbg("%s: TEARDOWN: %s", self.name,
+            self._dbg("TEARDOWN: %s",
                       ', '.join(child.name for child in self.children))
         self._exit()
-        self._dbg("%s: END", self.name)
+        self._dbg("END")
 
     def shutdown(self):
-        self._dbg("%s: shutdown: %s",
-                  threading.current_thread().name, self.name)
+        self._dbg("shutdown")
         for child in list(self.children):
             child.shutdown()
         self._shutdown = True
-        self._dbg("%s: shutdown done: %s",
-                  threading.current_thread().name, self.name)
+        self._dbg("shutdown done")
 
     def run_parent(self):
         pass
@@ -91,13 +89,28 @@ class Thread(threading.Thread):
         pass
 
     def _dbg(self, fmt, *args, **kwargs):
-        if self.debug_thread:
-            logger.debug(fmt, *args, **kwargs)
+        if self._is_dbg():
+            name = self.name
+            if threading.current_thread().name != name:
+                name += f"(from {threading.current_thread().name})"
+            logger.debug("%s%s: " + fmt, name, self._remote_address_label(),
+                         *args, **kwargs)
+
+    def _is_dbg(self):
+        return self.debug_thread
 
     def _remote_address(self):
-        if self.subject and hasattr(self.subject, "getpeername"):
+        subject = self.subject
+        while subject and not hasattr(subject, "getpeername"):
+            if hasattr(subject, "fd"):
+                subject = subject.fd
+            elif hasattr(subject, "buffer"):
+                subject = subject.buffer
+            else:
+                subject = None
+        if subject and hasattr(subject, "getpeername"):
             try:
-                return self.subject.getpeername()
+                return subject.getpeername()
             except OSError:
                 pass
         return None
@@ -122,11 +135,9 @@ class Connection(Thread):
 
     def run_thread(self):
         for value in self.read():
-            self._dbg("%s%s: DISPATCH: %s", self.name,
-                      self._remote_address_label(), value)
+            self._dbg("DISPATCH: %s", value)
             self.dispatch(value)
-            self._dbg("%s%s: DISPATCH DONE: %s", self.name,
-                      self._remote_address_label(), value)
+            self._dbg("DISPATCH DONE: %s", value)
 
     def read(self):
         pass
@@ -134,9 +145,8 @@ class Connection(Thread):
     def dispatch(self, subject):
         getattr(self, self._dispatcher_class)(parent=self, subject=subject)
 
-    def _dbg(self, fmt, *args, **kwargs):
-        if self.debug_dispatch:
-            logger.debug(fmt, *args, **kwargs)
+    def _is_dbg(self):
+        return self.debug_dispatch
 
 
 class ServerConnection(Connection):
