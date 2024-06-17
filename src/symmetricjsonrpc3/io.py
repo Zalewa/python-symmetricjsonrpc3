@@ -415,19 +415,12 @@ class _IoJob:
         self.complete.set()
 
 
-class _ImmediateJob(_IoJob):
-    pass
-
-
-class _FlushJob(_ImmediateJob):
-    name = "flush"
-
-    def run(self, fd):
-        self.accept(fd.flush())
-
-
 class _WriteJob(_IoJob):
     name = "write"
+
+
+class _WriteChunkJob(_WriteJob):
+    name = "write-chunk"
 
     def __init__(self, data):
         super().__init__()
@@ -437,11 +430,12 @@ class _WriteJob(_IoJob):
         self.accept(fd.write(self.data))
 
 
-class _WriteAtomicJob(_WriteJob):
-    name = "write-atomic"
+class _WriteAllJob(_WriteJob):
+    name = "write-all"
 
     def __init__(self, data):
-        super().__init__(data)
+        super().__init__()
+        self.data = data
         self._nwritten = 0
 
     def run(self, fd):
@@ -451,6 +445,13 @@ class _WriteAtomicJob(_WriteJob):
         self._nwritten += fd.write(data)
         if len(self.data) == self._nwritten:
             self.accept(self._nwritten)
+
+
+class _FlushJob(_WriteJob):
+    name = "flush"
+
+    def run(self, fd):
+        self.accept(fd.flush())
 
 
 class _ReadJob(_IoJob):
@@ -573,7 +574,7 @@ class SyncIO(threading.Thread, Closable):
     def write(self, data):
         if not (self._modeflags & selectors.EVENT_WRITE):
             raise io.UnsupportedOperation('not writable')
-        return self._run_job(_WriteAtomicJob(data))
+        return self._run_job(_WriteAllJob(data))
 
     def read(self, n=-1):
         if not (self._modeflags & selectors.EVENT_READ):
@@ -624,14 +625,9 @@ class SyncIO(threading.Thread, Closable):
                         self._closed = True
                     elif signal == b'j':
                         job = self._queue.get()
-                        if isinstance(job, _ImmediateJob):
-                            self._log_debug("immediate %s job from %s",
-                                            job.name, job.source)
-                            job.run(self.fd)
-                        else:
-                            self._log_debug("enqueueing %s job from %s",
-                                            job.name, job.source)
-                            iojobs.enqueue(job)
+                        self._log_debug("enqueueing %s job from %s",
+                                        job.name, job.source)
+                        iojobs.enqueue(job)
                     else:
                         raise TypeError(f"unknown job signal '{signal}'")
 
