@@ -113,11 +113,18 @@ class RPCClient(ClientConnection):
                           self._remote_address_label(),
                           "error" if subject.get("error") else "result",
                           subject['id'])
+                # TODO implement a proper error handling instead of this assert
                 assert 'id' in subject
-                if subject['id'] in self.parent._recv_waiting:
-                    with self.parent._recv_waiting[subject['id']]['condition']:
-                        self.parent._recv_waiting[subject['id']]['result'] = subject
-                        self.parent._recv_waiting[subject['id']]['condition'].notifyAll()
+
+                recvwait = None
+                with self.parent._recvwait_lock:
+                    if subject['id'] in self.parent._recv_waiting:
+                        recvwait = self.parent._recv_waiting.pop(subject['id'])
+
+                if recvwait:
+                    with recvwait['condition']:
+                        recvwait['result'] = subject
+                        recvwait['condition'].notify_all()
                 else:
                     self.dispatch_response(subject)
             elif 'method' in subject:
@@ -139,33 +146,40 @@ class RPCClient(ClientConnection):
             pass
 
     def _init(self, subject, parent=None, *arg, **kw):
-        self._request_id = 0
+        self._request_id = dispatcher.Count()
+        self._recvwait_lock = threading.Lock()
         self._send_lock = threading.Lock()
         self._recv_waiting = {}
         ClientConnection._init(self, subject=subject, parent=parent, *arg, **kw)
 
     def request(self, method, params=[], wait_for_response=False, timeout=None):
+        request_id = next(self._request_id)
+        if wait_for_response:
+            recvwait = {'condition': threading.Condition(), 'result': None}
+            with self._recvwait_lock:
+                self._recv_waiting[request_id] = recvwait
         with self._send_lock:
-            self._request_id += 1
-            request_id = self._request_id
-            if wait_for_response:
-                self._recv_waiting[request_id] = {'condition': threading.Condition(), 'result': None}
             self.writer.write_value({'jsonrpc': '2.0', 'method': method, 'params': params, 'id': request_id})
 
-            if not wait_for_response:
-                return request_id
+        if not wait_for_response:
+            return request_id
+        else:
+            return self._wait_for(recvwait, request_id, timeout, method)
 
+    def _wait_for(self, recvwait, request_id, timeout, method):
         try:
-            with self._recv_waiting[request_id]['condition']:
-                self._recv_waiting[request_id]['condition'].wait(timeout)
-                if self._recv_waiting[request_id]['result'] is None:
+            with recvwait['condition']:
+                recvwait['condition'].wait(timeout)
+                if recvwait['result'] is None:
                     raise TimeoutError("RPC timeout on method '{0}'".format(method))
-                if self._recv_waiting[request_id]['result'].get('error') is not None:
-                    exc = Exception(self._recv_waiting[request_id]['result']['error']['message'])
-                    raise exc
-                return self._recv_waiting[request_id]['result']['result']
+                if recvwait['result'].get('error') is not None:
+                    # TODO a more specific exception type
+                    raise Exception(recvwait['result']['error']['message'])
+                return recvwait['result']['result']
         finally:
-            del self._recv_waiting[request_id]
+            with self._recvwait_lock:
+                if request_id in self._recv_waiting:
+                    del self._recv_waiting[request_id]
 
     def respond(self, result, error, id):
         response = {'jsonrpc': '2.0', 'id': id}
