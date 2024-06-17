@@ -27,6 +27,7 @@ import selectors
 import socket
 import sys
 import threading
+from abc import ABC, abstractmethod
 from logging import getLogger
 
 
@@ -391,7 +392,24 @@ class _Reselector:
             logger.debug("Reselector: " + fmt, *args, **kwargs)
 
 
-class _IoJob:
+class _IoJob(ABC):
+    """A job that can be enqueued on the IO stream.
+
+    Provides an interface for running the jobs asynchronously. A job,
+    once completed or failed, should be accept()-ed or reject()-ed.
+    The caller/creator can await the completion by wait()-ing on the
+    self.complete Event or simply by calling get_result().
+
+    accept() fills in self.result, while reject() fills in self.error
+    with an exception type.
+
+    get_result() will either return the self.result or raise self.error
+    as soon as the self.complete event is set.
+
+    Concrete job implementations need to override and implement run();
+    run() receives a file-like object as parameter to run their job on.
+    """
+
     name = "io"
 
     def __init__(self):
@@ -414,12 +432,22 @@ class _IoJob:
         self.error = error
         self.complete.set()
 
+    @abstractmethod
+    def run(self, fd):
+        raise NotImplementedError
+
 
 class _WriteJob(_IoJob):
+    """Any job done on the writing end of the stream."""
     name = "write"
 
 
 class _WriteChunkJob(_WriteJob):
+    """Write at least some of the data.
+
+    This job is completed if even 1 byte was written.
+    """
+
     name = "write-chunk"
 
     def __init__(self, data):
@@ -431,6 +459,11 @@ class _WriteChunkJob(_WriteJob):
 
 
 class _WriteAllJob(_WriteJob):
+    """Write the whole data chunk.
+
+    This job is completed only once all of the data has been written.
+    """
+
     name = "write-all"
 
     def __init__(self, data):
@@ -448,6 +481,8 @@ class _WriteAllJob(_WriteJob):
 
 
 class _FlushJob(_WriteJob):
+    """Flush the written data."""
+
     name = "flush"
 
     def run(self, fd):
@@ -455,6 +490,15 @@ class _FlushJob(_WriteJob):
 
 
 class _ReadJob(_IoJob):
+    """Read a data chunk.
+
+    Calls fd.read() with the specified size; may return less than that
+    or an empty chunk if there's no more data in a seekable file.
+
+    Rejects with EOFError if the file is not seekable and an empty chunk
+    is read.
+    """
+
     name = "read"
 
     def __init__(self, n):
@@ -469,6 +513,8 @@ class _ReadJob(_IoJob):
 
 
 class _IoJobQueue:
+    """Enqueue _IoJob jobs as they come and split them by type."""
+
     def __init__(self):
         self.read_jobs = []
         self.write_jobs = []
