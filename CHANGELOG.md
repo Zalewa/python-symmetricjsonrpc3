@@ -12,6 +12,9 @@ User-relevant changes in `symmetricjsonrpc3`.
 - **Docs:** added CONTRIBUTING.txt; move the "Conventions" section there.
 - **Examples:** added a `pingspam_client` that tortures `ping_server`
   with many a ping.
+- **Examples:** added even more verbose logging options to all examples
+  when `-vv` is used.
+- **Examples:** added `--timestamps` argument to all examples.
 
 ### Changed
 
