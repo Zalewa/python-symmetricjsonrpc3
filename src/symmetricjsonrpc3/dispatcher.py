@@ -188,3 +188,17 @@ class ThreadedClient(Thread):
 
     def dispatch(self, subject):
         getattr(self, self._dispatcher_class)(parent=self, subject=subject)
+
+
+class Count:
+    """A thread-safe counter."""
+
+    def __init__(self, start=0):
+        self.value = start
+        self._lock = threading.Lock()
+
+    def __next__(self):
+        with self._lock:
+            value = self.value
+            self.value += 1
+            return value
