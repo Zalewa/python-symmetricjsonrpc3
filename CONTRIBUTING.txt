@@ -8,9 +8,37 @@ This project adheres to:
 
 - PEP 8 Style Guide
 - Conventional Commits 1.0.0 (https://www.conventionalcommits.org/)
+- Keep a Changelog (https://keepachangelog.com/en/1.1.0/)
 - PyPA version scheme (https://packaging.python.org/en/latest/specifications/version-specifiers/)
 
 Git tags are prefixed with 'v'.
 
 The package's version is automatically deduced from the git tag in the
 "no-guess-dev" mode.
+
+Changelog conventions
+=====================
+
+The *Security* section from "Keep a Changelog" always comes first!
+Other sections appear in the alphabetic order. Empty sections should
+be omitted.
+
+In addition to the "Keep a Changelog" sections, use the following entry
+prefixes when appropriate:
+
+  Docs, Examples, Tests, Build.
+
+They should appear in this order, in bold style and end with a colon, e.g.
+
+  - **Docs:** add project's "Conventions" to README.
+
+Changes that affect the library itself need no additional prefix and
+should appear before the prefixed ones.
+
+Particularly important changes must appear first in their section
+(before anything else) and must be at least partially bolded, e.g.
+
+  - **Removed Python 2 support.**
+
+The changes should otherwise be ordered by their importance, with
+subjectively more important changes appearing above the lesser ones.
