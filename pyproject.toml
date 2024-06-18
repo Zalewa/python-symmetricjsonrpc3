@@ -27,6 +27,7 @@ dynamic = ["version"]
 
 [project.urls]
 Source = "https://github.com/Zalewa/python-symmetricjsonrpc3"
+Changelog = "https://github.com/Zalewa/python-symmetricjsonrpc3/blob/master/CHANGELOG.md"
 
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
