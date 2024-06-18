@@ -169,6 +169,6 @@ finally:
         log(INFO, f"Average ping: {ms(avg(total_ping_times))}")
     elif len(total_ping_times) == 1:
         log(INFO, f"Ping: {ms(avg(total_ping_times))}")
-    log(DEBUG, f"Shutting down ...")
+    log(DEBUG, "Shutting down ...")
     client.shutdown()
-    log(DEBUG, f"Shutdown complete. DONE!")
+    log(DEBUG, "Shutdown complete. DONE!")
