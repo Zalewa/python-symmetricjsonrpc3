@@ -404,10 +404,10 @@ class JSONStringScanner(JSONScanner):
         return None
 
 
-class JSONComplexScanner(JSONScanner):
-    """Base class for scanning for arrays or objects.
+class JSONStructureScanner(JSONScanner):
+    """Base class for scanning for structured types: arrays or objects.
 
-    The "complex" scanner is actually primitive in the sense that it
+    The "structure" scanner is actually primitive in the sense that it
     doesn't care about the internal validity of the object. It knows
     the opening symbol (either '{' or '[') and scans the document until
     it finds its closing equivalent ('}' or ']'). Therefore, a malformed
@@ -456,13 +456,13 @@ class JSONComplexScanner(JSONScanner):
         return len(self._decoded)
 
 
-class JSONArrayScanner(JSONComplexScanner):
-    """JSONComplexScanner for arrays."""
+class JSONArrayScanner(JSONStructureScanner):
+    """JSONStructureScanner for arrays."""
     SEEKING = ('[', ']')
 
 
-class JSONObjectScanner(JSONComplexScanner):
-    """JSONComplexScanner for objects."""
+class JSONObjectScanner(JSONStructureScanner):
+    """JSONStructureScanner for objects."""
     SEEKING = ('{', '}')
 
 
@@ -525,7 +525,7 @@ class JSONDecoderBuffer:
             self._scanner = None
             to_decode = self._buffered[:doclen]
             self._buffered = ""
-            if isinstance(self._scanner, JSONComplexScanner):
+            if isinstance(self._scanner, JSONStructureScanner):
                 # If object is being read but was not completed
                 # at this point, we've ran out of the input stream.
                 raise EOFError
