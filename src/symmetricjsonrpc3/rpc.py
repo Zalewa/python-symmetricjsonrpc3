@@ -34,6 +34,15 @@ from .io import makefile
 logger = getLogger(__name__)
 
 
+class RPCError(Exception):
+    def __init__(self, error):
+        if not isinstance(error, dict):
+            error = {'message': str(error)}
+        super().__init__(error.get('message') or '')
+        self.code = error.get('code', 0)
+        self.data = error.get('data')
+
+
 class ClientConnection(dispatcher.Connection):
     """A connection manager for a connected socket (or similar) that
     reads and dispatches JSON values."""
@@ -58,7 +67,7 @@ class ClientConnection(dispatcher.Connection):
 
 
 class RPCErrorResponse(dict):
-    def __init__(self, message, code=0, data=None):
+    def __init__(self, message, code=0, data=None, for_sending=False):
         if isinstance(message, Exception):
             exc = message
             if data is None:
@@ -69,9 +78,11 @@ class RPCErrorResponse(dict):
         self["code"] = code
         if isinstance(data, Exception):
             self["data"] = {
-                'type': type(data).__name__,
-                'args': [self._argify(arg) for arg in data.args],
+                "type": type(data).__name__,
+                "args": [self._argify(arg) for arg in data.args],
             }
+            if not for_sending:
+                self["data"]["exception"] = data
         elif hasattr(data, '__to_json__'):
             self["data"] = data.__to_json__()
         else:
@@ -114,7 +125,7 @@ class RPCClient(ClientConnection):
                     error = None
                 except Exception as e:
                     result = None
-                    error = RPCErrorResponse(e)
+                    error = RPCErrorResponse(e, for_sending=True)
                 self.parent.respond(result, error, subject['id'])
             elif 'id' in subject and ('result' in subject or 'error' in subject):
                 self._dbg("incoming %s (%s)",
@@ -136,8 +147,11 @@ class RPCClient(ClientConnection):
                 self._dbg("incoming notification (%s)", subject['method'])
                 try:
                     self.dispatch_notification(subject)
-                except:
-                    logger.exception("dispatch_notification error")
+                except Exception:
+                    # Notifications have no replies, so logging the error
+                    # is the best we can do.
+                    logger.exception("%s%s: dispatch_notification error",
+                                     self.name, self._remote_address_label())
 
         def dispatch_request(self, subject):
             pass
@@ -200,9 +214,14 @@ class RPCClient(ClientConnection):
                 if not recvwait['result']:
                     raise TimeoutError(f"RPC timeout on request {request_id}"
                                        f" method '{method}'")
-                if recvwait['result'].get('error') is not None:
-                    # TODO a more specific exception type
-                    raise Exception(recvwait['result']['error'].get('message'))
+
+                error = recvwait['result'].get('error')
+                if error is not None:
+                    exception = error.get('data', {}).get('exception', None)
+                    if not exception:
+                        exception = RPCError(error)
+                    raise exception
+
                 return recvwait['result']['result']
         finally:
             with self._recvwait_lock:

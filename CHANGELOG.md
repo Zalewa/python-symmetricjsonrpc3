@@ -8,6 +8,9 @@ User-relevant changes in `symmetricjsonrpc3`.
 
 - When debug-logging, include the remote address in the log
   if applicable for given object.
+- `RPCError` exception type that is raised when awaiting a Response and
+  an Error Response arrives. If Response fails due to an internal exception,
+  re-raise that exception instead.
 - **Docs:** added this CHANGELOG.md.
 - **Docs:** added CONTRIBUTING.txt; move the "Conventions" section there.
 - **Examples:** added a `pingspam_client` that tortures `ping_server`
@@ -40,6 +43,9 @@ User-relevant changes in `symmetricjsonrpc3`.
 - Fail all waiting requests when `RPCClient` breaks connection or
   fails otherwise, allowing their waiters to know that an error has
   happened and preventing them from getting stuck.
+- Don't consume and drop the `BaseException` when it occurs when
+  dispatching a JSON-RPC Notification. Let it escape. Keep consuming
+  all other `Exception` types.
 - The compact JSON separators weren't actually set when encoding
   JSON, resulting in a JSON that wasn't very compact.
 - **Examples:** correct `ping_client` to say it works with

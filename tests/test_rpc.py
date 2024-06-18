@@ -105,10 +105,27 @@ class TestRPCErrorResponse(unittest.TestCase):
         response = RPCErrorResponse(exception)
         self.assertEqual(response["message"], "Exception: I am error.")
         self.assertEqual(response["code"], 0)
-        self.assertEqual(response["data"], {
+
+        data = response["data"]
+        self.assertEqual(data, {
+            **data,
             "type": "Exception",
             "args": ["I am error."]
-        })
+        }, data)
+        self.assertIs(exception, data.get("exception"))
+
+    def test_exception_conversion_for_sending(self):
+        exception = Exception("I am error.")
+        response = RPCErrorResponse(exception, for_sending=True)
+        self.assertEqual(response["message"], "Exception: I am error.")
+        self.assertEqual(response["code"], 0)
+
+        data = response["data"]
+        self.assertEqual(data, {
+            "type": "Exception",
+            "args": ["I am error."]
+        }, data)
+        self.assertNotIn("exception", data)
 
     def test_tojson_error_conversion(self):
         class SomeObj:
@@ -130,10 +147,14 @@ class TestRPCErrorResponse(unittest.TestCase):
         self.assertEqual(response["message"],
                          "Exception: ('I am SomeObj A.', 'I am SomeObj B.')")
         self.assertEqual(response["code"], 0)
-        self.assertEqual(response["data"], {
+
+        data = response["data"]
+        self.assertEqual(data, {
+            **data,
             "type": "Exception",
             "args": [SomeObj('A').__to_json__(), SomeObj('B').__to_json__()]
         })
+        self.assertIs(exception, data["exception"])
 
 
 class TestRpc(unittest.TestCase):

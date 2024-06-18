@@ -27,6 +27,7 @@ __all__ = [
     "ClientConnection",
     "Connection",
     "RPCClient",
+    "RPCError",
     "RPCServer",
     "Reader",
     "ServerConnection",
@@ -46,4 +47,4 @@ except PackageNotFoundError:
 
 from .dispatcher import Connection, ServerConnection, Thread, ThreadedClient
 from .json import Reader, Writer, from_json, to_json
-from .rpc import ClientConnection, RPCClient, RPCServer
+from .rpc import ClientConnection, RPCClient, RPCError, RPCServer
