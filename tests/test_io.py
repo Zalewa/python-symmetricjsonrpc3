@@ -25,7 +25,7 @@ import socket
 import tempfile
 import unittest
 
-from symmetricjsonrpc3.io import makefile, rwmode, typemode, Mode, SyncIO
+from symmetricjsonrpc3.io import makefile, rwmode, typemode, Mode
 
 
 class TestMode(unittest.TestCase):
@@ -414,89 +414,3 @@ class TestMakefile(unittest.TestCase):
     def test_not_makeable(self):
         with self.assertRaises(TypeError):
             makefile("/tmp/watermelon")
-
-
-class TestSyncIO(unittest.TestCase):
-    # ** test_openclose_... **
-    # SyncIO is supposed to close the underlying fd when it itself is closed
-    def test_openclose_stringio(self):
-        lower = io.StringIO()
-        upper = SyncIO(lower)
-        upper.close()
-        self.assertTrue(lower.closed)
-
-    def test_openclose_bytesio(self):
-        lower = io.BytesIO()
-        upper = SyncIO(lower)
-        upper.close()
-        self.assertTrue(lower.closed)
-
-    def test_openclose_tempfile(self):
-        lower = tempfile.TemporaryFile()
-        upper = SyncIO(lower)
-        upper.close()
-        self.assertTrue(lower.closed)
-
-    def test_openclose_pipe(self):
-        lower_r, lower_w = os.pipe()
-        os.close(lower_w)
-        upper = SyncIO(lower_r, mode="rb")
-        upper.close()
-        with self.assertRaises(OSError) as error:
-            os.close(lower_r)
-        self.assertEqual(error.exception.errno, errno.EBADF)
-
-    def test_openclose_socket(self):
-        lower = socket.socket()
-        upper = SyncIO(lower)
-        upper.close()
-        # socket's fileno() returns -1 when the socket is closed
-        self.assertEqual(lower.fileno(), -1)
-
-    def test_write_stringio(self):
-        strio = io.StringIO()
-        with SyncIO(strio, "r+") as sio:
-            sio.write("watermelon\n")
-            strio.seek(0)
-            self.assertEqual(strio.read(), "watermelon\n")
-
-    def test_read_stringio(self):
-        strio = io.StringIO("pineapple\n")
-        strio.seek(0)
-        with SyncIO(strio, "r+") as sio:
-            self.assertEqual(sio.read(), "pineapple\n")
-
-    def test_write_bytesio(self):
-        strio = io.BytesIO()
-        with SyncIO(strio, "wb") as sio:
-            sio.write(b"watermelon\n")
-            strio.seek(0)
-            self.assertEqual(strio.read(), b"watermelon\n")
-
-    def test_read_bytesio(self):
-        strio = io.BytesIO(b"pineapple\n")
-        strio.seek(0)
-        with SyncIO(strio, "rb") as sio:
-            self.assertEqual(sio.read(), b"pineapple\n")
-            strio.write(b"watermelon\n")
-            strio.seek(len(b"pineapple\n"))
-            self.assertEqual(sio.read(), b"watermelon\n")
-            # Not getting stuck on an in-memory IO.
-            self.assertEqual(sio.read(), b"")
-
-    def test_write_socketpair(self):
-        sock1, sock2 = socket.socketpair()
-        sock2.settimeout(0.1)  # ideally this should be 0
-        with SyncIO(sock1, "r+b") as sio:
-            sio.write(b"watermelon\n")
-            sio.flush()
-            self.assertEqual(sock2.recv(1024), b"watermelon\n")
-            sio.write(b"pineapple\n")
-            sio.flush()
-            self.assertEqual(sock2.recv(1024), b"pineapple\n")
-
-    def test_broken_socket(self):
-        sock1, sock2 = socket.socketpair()
-        with SyncIO(sock1, "rb") as reader:
-            sock2.close()
-            self.assertRaises(EOFError, reader.read)

@@ -30,7 +30,6 @@ __all__ = [
     "RPCServer",
     "Reader",
     "ServerConnection",
-    "SyncIO",
     "Thread",
     "ThreadedClient",
     "Writer",
@@ -46,6 +45,5 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 from .dispatcher import Connection, ServerConnection, Thread, ThreadedClient
-from .io import SyncIO
 from .json import Reader, Writer, from_json, to_json
 from .rpc import ClientConnection, RPCClient, RPCServer

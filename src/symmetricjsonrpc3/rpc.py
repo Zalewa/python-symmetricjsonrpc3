@@ -28,7 +28,7 @@ from logging import getLogger
 
 from . import dispatcher
 from . import json
-from .io import SyncIO
+from .io import makefile
 
 
 logger = getLogger(__name__)
@@ -39,7 +39,7 @@ class ClientConnection(dispatcher.Connection):
     reads and dispatches JSON values."""
 
     def _init(self, subject, parent=None, *arg, **kw):
-        subject = SyncIO(subject, "rw")
+        subject = makefile(subject, "rw")
         self.reader = json.Reader(subject)
         self.writer = json.Writer(subject)
         dispatcher.Connection._init(self, subject=subject, parent=parent, *arg, **kw)
@@ -47,8 +47,11 @@ class ClientConnection(dispatcher.Connection):
     def shutdown(self):
         self.reader.close()
         self.writer.close()
-        self.subject.close()
         dispatcher.Connection.shutdown(self)
+
+    def _exit(self):
+        self.subject.close()
+        super()._exit()
 
     def read(self):
         return self.reader.read_values()
