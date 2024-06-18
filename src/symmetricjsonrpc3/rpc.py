@@ -80,6 +80,9 @@ class RPCErrorResponse(dict):
         else:
             return repr(arg)
 
+    def to_result(self):
+        return {"result": None, "error": self}
+
 
 class RPCClient(ClientConnection):
     """A JSON-RPC client connection manager.
@@ -152,19 +155,31 @@ class RPCClient(ClientConnection):
         self._recv_waiting = {}
         ClientConnection._init(self, subject=subject, parent=parent, *arg, **kw)
 
+    def run_thread(self):
+        try:
+            super().run_thread()
+        except Exception as e:
+            self._client_exit(e)
+        else:
+            self._client_exit(EOFError())
+
     def request(self, method, params=[], wait_for_response=False, timeout=None):
         request_id = next(self._request_id)
         if wait_for_response:
             recvwait = {'condition': threading.Condition(), 'result': None}
             with self._recvwait_lock:
-                self._recv_waiting[request_id] = recvwait
+                if self._shutdown:
+                    recvwait['result'] = RPCErrorResponse(EOFError()).to_result()
+                else:
+                    self._recv_waiting[request_id] = recvwait
         with self._send_lock:
-            self.writer.write_value({
-                'jsonrpc': '2.0',
-                'method': method,
-                'params': params,
-                'id': request_id
-            })
+            if not self._shutdown:
+                self.writer.write_value({
+                    'jsonrpc': '2.0',
+                    'method': method,
+                    'params': params,
+                    'id': request_id
+                })
 
         if not wait_for_response:
             return request_id
@@ -200,6 +215,14 @@ class RPCClient(ClientConnection):
     def notify(self, method, params=[]):
         with self._send_lock:
             self.writer.write_value({'method': method, 'params': params})
+
+    def _client_exit(self, error):
+        """Fail all pending requests."""
+        with self._recvwait_lock:
+            for recvwait in self._recv_waiting.values():
+                with recvwait['condition']:
+                    recvwait['result'] = RPCErrorResponse(error).to_result()
+                    recvwait['condition'].notify_all()
 
     def __getattr__(self, name):
         def rpc_wrapper(*arg):

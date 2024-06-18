@@ -30,6 +30,9 @@ User-relevant changes in `symmetricjsonrpc3`.
 - Concurrency deadlock: when waiting for a reply to a request, check
   if the reply hasn't already arrived before the wait is started. If
   yes, don't wait, just return.
+- Fail all waiting requests when `RPCClient` breaks connection or
+  fails otherwise, allowing their waiters to know that an error has
+  happened and preventing them from getting stuck.
 - The compact JSON separators weren't actually set when encoding
   JSON, resulting in a JSON that wasn't very compact.
 - **Examples:** correct `ping_client` to say it works with
