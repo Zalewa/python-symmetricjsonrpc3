@@ -28,6 +28,7 @@ from logging import getLogger
 
 from . import dispatcher
 from . import json
+from .io import makefile
 
 
 logger = getLogger(__name__)
@@ -38,6 +39,7 @@ class ClientConnection(dispatcher.Connection):
     reads and dispatches JSON values."""
 
     def _init(self, subject, parent=None, *arg, **kw):
+        subject = makefile(subject, "rw")
         self.reader = json.Reader(subject)
         self.writer = json.Writer(subject)
         dispatcher.Connection._init(self, subject=subject, parent=parent, *arg, **kw)
@@ -46,6 +48,10 @@ class ClientConnection(dispatcher.Connection):
         self.reader.close()
         self.writer.close()
         dispatcher.Connection.shutdown(self)
+
+    def _exit(self):
+        self.subject.close()
+        super()._exit()
 
     def read(self):
         return self.reader.read_values()
@@ -101,8 +107,7 @@ class RPCClient(ClientConnection):
     class Request(dispatcher.ThreadedClient):
         def dispatch(self, subject):
             if 'method' in subject and 'id' in subject:
-                self._dbg("%s%s: incoming request (%s:%s)", self.name,
-                          self._remote_address_label(),
+                self._dbg("incoming request (%s:%s)",
                           subject['id'], subject['method'])
                 try:
                     result = self.dispatch_request(subject)
@@ -114,8 +119,7 @@ class RPCClient(ClientConnection):
             elif 'result' in subject or 'error' in subject:
                 # TODO implement a proper error handling instead of this assert
                 assert 'id' in subject
-                self._dbg("%s%s: incoming %s (%s)", self.name,
-                          self._remote_address_label(),
+                self._dbg("incoming %s (%s)",
                           "error" if subject.get("error") else "result",
                           subject['id'])
 
@@ -131,8 +135,7 @@ class RPCClient(ClientConnection):
                 else:
                     self.dispatch_response(subject)
             elif 'method' in subject:
-                self._dbg("%s%s: incoming notification (%s)", self.name,
-                          self._remote_address_label(), subject['method'])
+                self._dbg("incoming notification (%s)", subject['method'])
                 try:
                     self.dispatch_notification(subject)
                 except:

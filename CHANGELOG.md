@@ -18,6 +18,8 @@ User-relevant changes in `symmetricjsonrpc3`.
 
 ### Changed
 
+- Replace the IO `wrappers` module with a more versatile and better
+  tested `io`. Just like `wrappers`, `io` is an internal module.
 - **Tests:** shebangs now run pytest.
 
 ### Fixed

@@ -20,6 +20,8 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 import argparse
+from time import perf_counter
+
 import symmetricjsonrpc3
 
 
@@ -122,8 +124,10 @@ client = PingRPCClient(s)
 
 # Call a method on the server
 log(INFO, "Sending 'ping' request ...")
+time_request_begin = perf_counter()
 res = client.request("ping", wait_for_response=True)
-log(COMM, f"-> RES: client.ping => {repr(res)}")
+ping_time = (perf_counter() - time_request_begin) * 1000
+log(COMM, f"-> RES: client.ping => {repr(res)} (time: {round(ping_time, 2)} ms)")
 if res != "pong":
     log(ERROR, f"-> RES: unexpected response: {repr(res)}")
 

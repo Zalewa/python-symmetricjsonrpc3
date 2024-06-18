@@ -138,25 +138,30 @@ class TestRPCErrorResponse(unittest.TestCase):
 
 class TestRpc(unittest.TestCase):
     def test_client(self):
-        sockets = socket.socketpair()
-        _EchoClient(sockets[1])
+        s1, s2 = socket.socketpair()
+        try:
+            _EchoClient(s2)
+        except Exception:
+            s1.close()
+            s2.close()
+            raise
 
-        reader = json.Reader(sockets[0])
-        writer = json.Writer(sockets[0])
+        with SocketFile(s1) as s1:
+            reader = json.Reader(s1)
+            writer = json.Writer(s1)
 
-        obj = {'foo': 1, 'bar': [1, 2]}
-        writer.write_value(obj)
-        return_obj = reader.read_value()
+            obj = {'foo': 1, 'bar': [1, 2]}
+            writer.write_value(obj)
+            return_obj = reader.read_value()
         self.assertEqual(obj, return_obj)
 
     def test_return_on_closed_socket(self):
         server_socket = _make_server_socket()
         echo_server = _EchoServer(server_socket, name="TestEchoServer")
 
-        client_socket = _make_client_socket()
-        writer = json.Writer(client_socket)
-        writer.write_value({'foo': 1, 'bar': 2})
-        client_socket.close()
+        with SocketFile(_make_client_socket()) as client_socket:
+            writer = json.Writer(client_socket)
+            writer.write_value({'foo': 1, 'bar': 2})
 
         echo_server.shutdown()
         echo_server.join()
@@ -166,13 +171,13 @@ class TestRpc(unittest.TestCase):
             server_socket = _make_server_socket()
             echo_server = _EchoServer(server_socket, name="TestEchoServer")
 
-            client_socket = _make_client_socket()
-            reader = json.Reader(client_socket)
-            writer = json.Writer(client_socket)
+            with SocketFile(_make_client_socket()) as client_socket:
+                reader = json.Reader(client_socket)
+                writer = json.Writer(client_socket)
 
-            obj = {'foo': 1, 'bar': [1, 2]}
-            writer.write_value(obj)
-            return_obj = reader.read_value()
+                obj = {'foo': 1, 'bar': [1, 2]}
+                writer.write_value(obj)
+                return_obj = reader.read_value()
 
             self.assertEqual(obj, return_obj)
             echo_server.shutdown()
@@ -183,14 +188,14 @@ class TestRpc(unittest.TestCase):
             server_socket = _make_server_socket()
             echo_server = _ThreadedEchoServer(server_socket, name="TestEchoServer")
 
-            client_socket = _make_client_socket()
-            writer = json.Writer(client_socket)
+            with SocketFile(_make_client_socket()) as client_socket:
+                writer = json.Writer(client_socket)
 
-            obj = {'foo': 1, 'bar': [1, 2]}
-            writer.write_value(obj)
+                obj = {'foo': 1, 'bar': [1, 2]}
+                writer.write_value(obj)
 
-            reader = json.Reader(client_socket)
-            return_obj = reader.read_value()
+                reader = json.Reader(client_socket)
+                return_obj = reader.read_value()
 
             self.assertEqual(obj, return_obj)
             echo_server.shutdown()
@@ -205,8 +210,40 @@ class TestRpc(unittest.TestCase):
             client = _PingRPCClient(client_socket)
             self.assertEqual(client.request("ping", wait_for_response=True), "pong")
             self.assertEqual(client.ping(), "pong")
+            client.shutdown()
             server.shutdown()
             server.join()
+
+
+class SocketFile:
+    @classmethod
+    def pair(cls):
+        s1, s2 = socket.socketpair()
+        return cls(s1), cls(s2)
+
+    def __init__(self, sock):
+        self.s = sock
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.s.close()
+
+    def fileno(self):
+        return self.s.fileno()
+
+    def read(self, n=1024):
+        return self.s.recv(1024).decode('ascii')
+
+    def write(self, data):
+        return self.s.send(data.encode('ascii'))
+
+    def flush(self):
+        pass
+
+    def close(self):
+        return self.s.close()
 
 
 if __name__ == "__main__":
