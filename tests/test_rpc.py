@@ -82,14 +82,14 @@ class _PongRPCServer(RPCServer):
 def _make_server_socket():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('', 4712))
+    s.bind(('localhost', 0))
     s.listen(1)
-    return s
+    return s, s.getsockname()[1]
 
 
-def _make_client_socket():
+def _make_client_socket(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('localhost', 4712))
+    s.connect(('localhost', port))
     return s
 
 
@@ -177,10 +177,10 @@ class TestRpc(unittest.TestCase):
         self.assertEqual(obj, return_obj)
 
     def test_return_on_closed_socket(self):
-        server_socket = _make_server_socket()
+        server_socket, port = _make_server_socket()
         echo_server = _EchoServer(server_socket, name="TestEchoServer")
 
-        with SocketFile(_make_client_socket()) as client_socket:
+        with SocketFile(_make_client_socket(port)) as client_socket:
             writer = json.Writer(client_socket)
             writer.write_value({'foo': 1, 'bar': 2})
 
@@ -189,10 +189,10 @@ class TestRpc(unittest.TestCase):
 
     def test_server(self):
         for n in range(3):
-            server_socket = _make_server_socket()
+            server_socket, port = _make_server_socket()
             echo_server = _EchoServer(server_socket, name="TestEchoServer")
 
-            with SocketFile(_make_client_socket()) as client_socket:
+            with SocketFile(_make_client_socket(port)) as client_socket:
                 reader = json.Reader(client_socket)
                 writer = json.Writer(client_socket)
 
@@ -206,10 +206,10 @@ class TestRpc(unittest.TestCase):
 
     def test_threaded_server(self):
         for n in range(3):
-            server_socket = _make_server_socket()
+            server_socket, port = _make_server_socket()
             echo_server = _ThreadedEchoServer(server_socket, name="TestEchoServer")
 
-            with SocketFile(_make_client_socket()) as client_socket:
+            with SocketFile(_make_client_socket(port)) as client_socket:
                 writer = json.Writer(client_socket)
 
                 obj = {'foo': 1, 'bar': [1, 2]}
@@ -224,10 +224,10 @@ class TestRpc(unittest.TestCase):
 
     def test_rpc_server(self):
         for n in range(3):
-            server_socket = _make_server_socket()
+            server_socket, port = _make_server_socket()
             server = _PongRPCServer(server_socket, name="PongServer")
 
-            client_socket = _make_client_socket()
+            client_socket = _make_client_socket(port)
             client = _PingRPCClient(client_socket)
             self.assertEqual(client.request("ping", wait_for_response=True), "pong")
             self.assertEqual(client.ping(), "pong")
@@ -237,11 +237,6 @@ class TestRpc(unittest.TestCase):
 
 
 class SocketFile:
-    @classmethod
-    def pair(cls):
-        s1, s2 = socket.socketpair()
-        return cls(s1), cls(s2)
-
     def __init__(self, sock):
         self.s = sock
 

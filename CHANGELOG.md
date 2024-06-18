@@ -4,6 +4,10 @@ User-relevant changes in `symmetricjsonrpc3`.
 
 ## [Unreleased]
 
+### Security
+
+- **Tests:** don't bind listening TCP sockets to `0.0.0.0`.
+
 ### Added
 
 - When debug-logging, include the remote address in the log
@@ -50,6 +54,8 @@ User-relevant changes in `symmetricjsonrpc3`.
   JSON, resulting in a JSON that wasn't very compact.
 - **Examples:** correct `ping_client` to say it works with
   `ping_server`, not with itself.
+- **Tests:** allow the OS to pick the port for the listening socket;
+  don't hardcode port 4712 for all tests anymore.
 
 ## [0.4.0] - 2024-06-06
 
