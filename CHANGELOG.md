@@ -20,6 +20,9 @@ User-relevant changes in `symmetricjsonrpc3`.
 
 - Replace the IO `wrappers` module with a more versatile and better
   tested `io`. Just like `wrappers`, `io` is an internal module.
+- `params` in JSON-RPC Request is optional, so omit it if empty.
+- `params` in JSON-RPC Request is now type-checked to see if it
+  is a JSON structured type. If not, a `TypeError` is raised.
 - **Tests:** shebangs now run pytest.
 
 ### Fixed

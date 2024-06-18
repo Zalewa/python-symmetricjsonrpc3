@@ -164,7 +164,11 @@ class RPCClient(ClientConnection):
         else:
             self._client_exit(EOFError())
 
-    def request(self, method, params=[], wait_for_response=False, timeout=None):
+    def request(self, method, params=None, wait_for_response=False, timeout=None):
+        if params is not None and not isinstance(params, (list, dict, tuple)):
+            raise TypeError("'params' must be a list or dict, or omitted")
+
+        # Prepare the Request ID and the Response awaiter.
         request_id = next(self._request_id)
         if wait_for_response:
             recvwait = {'condition': threading.Condition(), 'result': None}
@@ -173,15 +177,16 @@ class RPCClient(ClientConnection):
                     recvwait['result'] = RPCErrorResponse(EOFError()).to_result()
                 else:
                     self._recv_waiting[request_id] = recvwait
+
+        # Send the Request.
+        payload = {'jsonrpc': '2.0', 'method': str(method), 'id': request_id}
+        if params:
+            payload['params'] = params
         with self._send_lock:
             if not self._shutdown:
-                self.writer.write_value({
-                    'jsonrpc': '2.0',
-                    'method': method,
-                    'params': params,
-                    'id': request_id
-                })
+                self.writer.write_value(payload)
 
+        # Await the reply (or just return the ID).
         if not wait_for_response:
             return request_id
         else:
