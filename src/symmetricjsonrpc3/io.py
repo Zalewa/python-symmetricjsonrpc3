@@ -656,6 +656,8 @@ class SyncIO(threading.Thread, Closable):
             self._closed = True
             os.write(self._wjob, b'q')
         self.join()
+        if self._selector:
+            self._selector.close()
 
     def run(self):
         iojobs = _IoJobQueue()
