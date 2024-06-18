@@ -116,9 +116,7 @@ class RPCClient(ClientConnection):
                     result = None
                     error = RPCErrorResponse(e)
                 self.parent.respond(result, error, subject['id'])
-            elif 'result' in subject or 'error' in subject:
-                # TODO implement a proper error handling instead of this assert
-                assert 'id' in subject
+            elif 'id' in subject and ('result' in subject or 'error' in subject):
                 self._dbg("incoming %s (%s)",
                           "error" if subject.get("error") else "result",
                           subject['id'])

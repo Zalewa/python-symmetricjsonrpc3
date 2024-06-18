@@ -24,6 +24,8 @@ User-relevant changes in `symmetricjsonrpc3`.
 
 ### Fixed
 
+- JSON-RPC Response objects that lack the `'id'` attribute will be
+  ignored now instead of failing an assertion.
 - Various thread synchronization issues when sending RPC requests.
   Narrow the scopes of the existing locks, allowing threads to run
   concurrently where it causes no issues. Add locks to the *response
