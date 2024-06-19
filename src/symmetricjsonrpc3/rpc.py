@@ -218,7 +218,7 @@ class RPCClient(ClientConnection):
                 error = recvwait['result'].get('error')
                 if error is not None:
                     exception = error.get('data', {}).get('exception', None)
-                    if not exception:
+                    if not isinstance(exception, BaseException):
                         exception = RPCError(error)
                     raise exception
 

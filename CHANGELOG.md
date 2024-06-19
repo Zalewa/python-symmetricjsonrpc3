@@ -2,6 +2,15 @@
 
 User-relevant changes in `symmetricjsonrpc3`.
 
+## [Unreleased]
+
+### Fixed
+
+- Request's Response error raise would try to raise non-exceptions due
+  to incompetent `RPCError` wrapping. All that was needed to trigger that
+  was for the remote end to send anything other than `null` in Response's
+  `error.data.exception`.
+
 ## [0.5.0] - 2024-06-18
 
 ### Security
@@ -153,6 +162,7 @@ from 2014 and before, however these are not listed here.
 
 Original maintainer release.
 
+[Unreleased]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.2.0...v0.3.0
