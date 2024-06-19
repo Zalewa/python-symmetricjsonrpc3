@@ -2,7 +2,7 @@
 
 User-relevant changes in `symmetricjsonrpc3`.
 
-## [Unreleased]
+## [0.5.1] - 2024-06-19
 
 ### Fixed
 
@@ -162,7 +162,7 @@ from 2014 and before, however these are not listed here.
 
 Original maintainer release.
 
-[Unreleased]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.5.0...HEAD
+[0.5.1]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zalewa/python-symmetricjsonrpc3/compare/v0.2.0...v0.3.0
