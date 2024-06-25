@@ -157,7 +157,7 @@ class TestRPCErrorResponse(unittest.TestCase):
         self.assertIs(exception, data["exception"])
 
 
-class TestRpc(unittest.TestCase):
+class TestRPC(unittest.TestCase):
     def test_client(self):
         s1, s2 = socket.socketpair()
         try:
