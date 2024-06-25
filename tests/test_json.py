@@ -619,3 +619,7 @@ class _SocketReader:
 
     def read(self, n=1024):
         return self.s.recv(1024).decode('ascii')
+
+
+if __name__ == "__main__":
+    unittest.main()

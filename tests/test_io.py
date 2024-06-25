@@ -414,3 +414,7 @@ class TestMakefile(unittest.TestCase):
     def test_not_makeable(self):
         with self.assertRaises(TypeError):
             makefile("/tmp/watermelon")
+
+
+if __name__ == "__main__":
+    unittest.main()
